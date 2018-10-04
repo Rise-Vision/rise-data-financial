@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Web component for retrieving financial data on a Rise Vision Template page",
   "scripts": {
+    "build": "polymer build && ./node_modules/common-component/extract-source.sh rise-data-financial",
     "test": "eslint . && polymer test --npm"
   },
   "repository": {
@@ -23,6 +24,7 @@
   },
   "homepage": "https://github.com/Rise-Vision/rise-data-financial#readme",
   "dependencies": {
+    "common-component": "git://github.com/Rise-Vision/common-component.git#v1.16.1",
     "@polymer/polymer": "^3.0.5",
     "@webcomponents/webcomponentsjs": "^2.1.3"
   },
