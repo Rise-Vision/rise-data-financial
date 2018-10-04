@@ -5,7 +5,7 @@ class RiseDataFinancial extends PolymerElement {
   constructor() {
     super();
 
-    // TODO: coming soon
+    // TODO:
   }
 
 }
