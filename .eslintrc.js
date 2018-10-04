@@ -7,6 +7,9 @@ module.exports = {
     "eslint:recommended",
     "idiomatic"
   ],
+  "parserOptions": {
+    "sourceType": "module"
+  },
   "rules": {
     "quotes": [
       "error",
