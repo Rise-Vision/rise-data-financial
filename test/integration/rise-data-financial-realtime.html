@@ -1,0 +1,54 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="../../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+  <script src="../../node_modules/wct-browser-legacy/browser.js"></script>
+  <script src="../mocks/firebase.js"></script>
+  <script src="../../src/rise-data-financial-config.js" type="module"></script>
+  <script src="../../src/rise-data-financial.js" type="module"></script>
+</head>
+<body>
+<test-fixture id="test-block">
+  <template>
+    <rise-data-financial financial-list="Stocks" instrument-fields='["lastPrice", "netChange"]'></rise-data-financial>
+  </template>
+</test-fixture>
+
+<script>
+  suite("rise-data-financial", () => {
+
+    let element,
+      clock;
+
+    setup(() => element = fixture("test-block"));
+
+    suiteSetup( () => {
+      clock = sinon.useFakeTimers();
+    } );
+
+    suiteTeardown( () => {
+      clock.restore();
+    } );
+
+
+    suite( "financial list id change", () => {
+
+      test( "should call _financialReset()", () => {
+        let changedStub = sinon.stub( element, "_financialReset" );
+
+        element.setAttribute( "financial-list", "abc123" );
+        assert.isTrue( changedStub.calledOnce );
+        changedStub.restore();
+      } );
+
+    } );
+
+  });
+</script>
+
+</body>
+</html>

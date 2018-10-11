@@ -1,0 +1,198 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="../../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+  <script src="../../node_modules/wct-browser-legacy/browser.js"></script>
+  <script src="../mocks/firebase.js"></script>
+  <script src="../../src/rise-data-financial-config.js" type="module"></script>
+  <script src="../../src/rise-data-financial.js" type="module"></script>
+</head>
+<body>
+<test-fixture id="test-block">
+  <template>
+    <rise-data-financial financial-list="Stocks" instrument-fields='["lastPrice", "netChange"]'></rise-data-financial>
+  </template>
+</test-fixture>
+
+<script>
+  suite("rise-data-financial", () => {
+
+    const inst1 = {
+        category: "Stocks",
+        index: 0,
+        name: "Alcoa",
+        symbol: "AA.N",
+        $id: "AA?N"
+      },
+      instrument = {
+        "AA?N": inst1
+      };
+
+    let element,
+      clock,
+      financialResetStub;
+
+    setup(() => {
+      element = fixture("test-block");
+      financialResetStub = sinon.stub(element, "_financialReset");
+    });
+
+    teardown(() => financialResetStub.restore());
+
+    suiteSetup( () => {
+      clock = sinon.useFakeTimers();
+    } );
+
+    suiteTeardown( () => {
+      clock.restore();
+    } );
+
+    suite( "Properties", () => {
+
+      test( "should set financial list property", () => {
+        assert.equal( element.financialList, "Stocks" );
+      } );
+
+      test( "should set instrument fields array", () => {
+        assert.deepEqual( element.instrumentFields, [ "lastPrice", "netChange" ] );
+      } );
+
+    } );
+
+    suite( "_getInstruments", () => {
+      let spy;
+
+      setup( () => {
+        spy = sinon.spy( element, "_handleInstruments" );
+      } );
+
+      teardown( () => {
+        spy.restore();
+      } );
+
+      test( "should trigger _handleInstruments() to be executed upon instruments received", () => {
+        element._getInstruments();
+
+        console.log(spy.args);
+
+        assert( spy.calledOnce );
+      } );
+
+      test( "should not trigger _handleInstruments() if no financialList attribute", () => {
+        element.financialList = "";
+        element._getInstruments();
+
+        assert.equal( spy.callCount, 0 );
+
+        element.financialList = "Stocks";
+      } );
+
+      test( "should not trigger _handleInstruments() if firebase connection status not determined", () => {
+        element._firebaseConnected = undefined;
+        element._getInstruments();
+
+        assert.equal( spy.callCount, 0 );
+
+        element._firebaseConnected = true;
+      } );
+
+    } );
+
+    suite( "_handleInstruments", () => {
+
+      test( "should set _instruments", () => {
+        element._handleInstruments( {
+          val: () => {
+            return instrument;
+          }
+        } );
+
+        assert.deepEqual( element._instruments, [ inst1 ] );
+      } );
+
+      test( "should not set _instruments", () => {
+        element._handleInstruments( {
+          val: () => {
+            return null;
+          }
+        } );
+
+        assert.deepEqual( element._instruments, [] );
+      } );
+
+    } );
+
+    suite( "_financialReset", () => {
+      let instrumentsStub;
+
+      setup( () => {
+        instrumentsStub = sinon.stub( element, "_getInstruments" );
+      } );
+
+      teardown( () => {
+        instrumentsStub.restore();
+      } );
+
+      test( "should call _getInstruments()", () => {
+        // need to remove the stub and add back on every test
+        financialResetStub.restore();
+        element._financialReset();
+
+        assert.isTrue( instrumentsStub.calledOnce );
+
+        financialResetStub = sinon.stub( element, "_financialReset" );
+      } );
+
+    } );
+
+    suite( "_handleConnected", () => {
+      let stub;
+
+      setup( () => {
+        stub = sinon.stub( element, "_getInstruments" );
+      } );
+
+      teardown( () => {
+        element._getInstruments.restore();
+      } );
+
+      test( "should set firebase connected status and call '_getInstruments()' when still needing instruments", () => {
+        element._instrumentsReceived = false;
+        setFirebaseConnectionStatus( true );
+
+        assert.isTrue( stub.calledOnce );
+        assert.isTrue( element._firebaseConnected );
+
+        element._instrumentsReceived = true;
+      } );
+
+      test( "should not call '_getInstruments()' if instruments already received", () => {
+        setFirebaseConnectionStatus( true );
+
+        assert.equal( stub.callCount, 0 );
+        assert.isTrue( element._firebaseConnected );
+      } );
+
+      test( "should call '_getInstruments()' if no connection within 2 seconds and still needing instruments", () => {
+        element._instrumentsReceived = false;
+        setFirebaseConnectionStatus( false );
+
+        clock.tick( 2000 );
+
+        assert.isTrue( stub.calledOnce );
+        assert.isFalse( element._firebaseConnected );
+
+        element._firebaseConnected = true;
+      } );
+
+    } );
+
+  });
+</script>
+
+</body>
+</html>
