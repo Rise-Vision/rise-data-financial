@@ -28,9 +28,19 @@
         symbol: "AA.N",
         $id: "AA?N"
       },
+      inst2 = {
+        category: "Stocks",
+        index: 1,
+        name: "Dow Jones",
+        symbol: ".DJI",
+        $id: "?DJI"
+      },
       instrument = {
         "AA?N": inst1
-      };
+      },
+      instruments = [
+        inst1, inst2
+      ];
 
     let element,
       clock,
@@ -63,6 +73,30 @@
 
     } );
 
+    suite( "_getInstrumentsFromLocalStorage", () => {
+      setup( () => {
+        localStorage.removeItem( `risedatafinancial_${element.financialList}` );
+        localStorage.setItem(
+          `risefinancial_${element.financialList}`,
+          JSON.stringify( instruments )
+        );
+      } );
+
+      teardown( () => {
+        localStorage.removeItem( `risedatafinancial_${element.financialList}` );
+      } );
+
+      test( "should provide instruments from local storage", (done) => {
+        element._getInstrumentsFromLocalStorage( `risefinancial_${element.financialList}` )
+          .then((data)=>{
+            assert.deepEqual( data, instruments );
+            done();
+          })
+          .catch(() => console.log("shouldn't be here"));
+      } );
+
+    } );
+
     suite( "_getInstruments", () => {
       let spy;
 
@@ -77,9 +111,53 @@
       test( "should trigger _handleInstruments() to be executed upon instruments received", () => {
         element._getInstruments();
 
-        console.log(spy.args);
-
         assert( spy.calledOnce );
+      } );
+
+      test( "should get instruments from local storage if firebase not connected", (done) => {
+        clock.restore();
+
+        sinon.stub(element, "_getInstrumentsFromLocalStorage", ()=> {
+          return Promise.resolve(instruments);
+        });
+
+        element._instrumentsReceived = false;
+        element._instruments = undefined;
+        element._firebaseConnected = false;
+
+        element._getInstruments();
+
+        setTimeout(() => {
+          assert.isTrue( element._instrumentsReceived );
+          assert.deepEqual( element._instruments, instruments );
+
+          element._firebaseConnected = true;
+          element._getInstrumentsFromLocalStorage.restore();
+
+          clock = sinon.useFakeTimers();
+
+          done();
+        }, 500);
+      } );
+
+      test( "should fire 'rise-financial-no-data' if firebase not connected and localStorage empty", ( done ) => {
+        let listener = () => {
+          element._getInstrumentsFromLocalStorage.restore();
+          element._firebaseConnected = true;
+          element._instrumentsReceived = true;
+          element.removeEventListener( "rise-financial-no-data", listener );
+          done();
+        };
+
+        sinon.stub( element, "_getInstrumentsFromLocalStorage", () => {
+          return Promise.reject();
+        } );
+
+        element._instrumentsReceived = false;
+        element._firebaseConnected = false;
+
+        element.addEventListener( "rise-financial-no-data", listener );
+        element._getInstruments();
       } );
 
       test( "should not trigger _handleInstruments() if no financialList attribute", () => {
@@ -122,6 +200,25 @@
         } );
 
         assert.deepEqual( element._instruments, [] );
+      } );
+
+    } );
+
+    suite( "_saveInstruments", () => {
+
+      setup( () => {
+        localStorage.removeItem( `risedatafinancial_${element.financialList}` );
+      } );
+
+      teardown( () => {
+        localStorage.removeItem( `risedatafinancial_${element.financialList}` );
+      } );
+
+      test( "should save instruments to local storage", () => {
+        element._saveInstruments( [ inst1 ] );
+
+        assert.deepEqual( JSON.parse( localStorage.getItem( `risedatafinancial_${element.financialList}` ) ),
+          [ inst1 ] ); // eslint-disable-line quotes
       } );
 
     } );

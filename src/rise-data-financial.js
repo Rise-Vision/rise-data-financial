@@ -74,6 +74,19 @@ class RiseDataFinancial extends PolymerElement {
     this._connectedRef.off( "value", this._handleConnected );
   }
 
+  _getInstrumentsFromLocalStorage( key ) {
+    return new Promise(( resolve, reject ) => {
+      try {
+        const instruments = JSON.parse( localStorage.getItem( key ));
+
+        resolve( instruments );
+      } catch ( e ) {
+        console.warn( e.message );
+        reject();
+      }
+    });
+  }
+
   _getInstruments() {
     if ( !this.financialList || this._firebaseConnected === undefined ) {
       return;
@@ -85,7 +98,25 @@ class RiseDataFinancial extends PolymerElement {
 
       this._instrumentsRef.on( "value", this._handleInstruments );
     } else {
-      // TODO: get instruments from Browser localStorage (if saved)
+      this._getInstrumentsFromLocalStorage( `risedatafinancial_${ this.financialList }` )
+        .then(( instruments ) => {
+          this._instrumentsReceived = true;
+          this._instruments = instruments;
+
+          console.log( "retrieved instruments via localStorage", this._instruments );
+
+          // TODO: initiate getting data
+
+        })
+        .catch(() => this._sendFinancialEvent( "rise-financial-no-data" ));
+    }
+  }
+
+  _saveInstruments( instruments ) {
+    try {
+      localStorage.setItem( `risedatafinancial_${ this.financialList }`, JSON.stringify( instruments ));
+    } catch ( e ) {
+      console.warn( e.message );
     }
   }
 
@@ -112,16 +143,23 @@ class RiseDataFinancial extends PolymerElement {
 
     this._instruments = this._sortInstruments( instruments );
     this._instrumentsReceived = true;
+    this._saveInstruments( this._instruments );
 
     console.log( "_handleInstruments", this._instruments );
-
-    // TODO: save instruments to Browser localStorage
 
     // TODO: initiate getting data
   }
 
   _financialReset() {
     this._getInstruments();
+  }
+
+  _sendFinancialEvent( eventName, detail = {}) {
+    const event = new CustomEvent( eventName, {
+      bubbles: true, composed: true, detail
+    });
+
+    this.dispatchEvent( event );
   }
 
   _sortInstruments( instrumentMap ) {
