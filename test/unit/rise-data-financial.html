@@ -217,7 +217,7 @@
       test( "should save instruments to local storage", () => {
         element._saveInstruments( [ inst1 ] );
 
-        assert.deepEqual( JSON.parse( localStorage.getItem( "risedatafinancial_Stocks" ) ),
+        assert.deepEqual( JSON.parse( localStorage.getItem( `risedatafinancial_${element.financialList}` ) ),
           [ inst1 ] ); // eslint-disable-line quotes
       } );
 
