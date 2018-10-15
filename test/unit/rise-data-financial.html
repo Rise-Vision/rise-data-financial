@@ -8,6 +8,9 @@
   <script src="../../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
   <script src="../../node_modules/wct-browser-legacy/browser.js"></script>
   <script src="../mocks/firebase.js"></script>
+  <script type="text/javascript">
+    RisePlayerConfiguration = {};
+  </script>
   <script src="../../src/rise-data-financial-config.js" type="module"></script>
   <script src="../../src/rise-data-financial.js" type="module"></script>
 </head>
@@ -47,11 +50,19 @@
       financialResetStub;
 
     setup(() => {
+      RisePlayerConfiguration.getDisplayId = () => {
+        return "ABC123";
+      };
+
       element = fixture("test-block");
       financialResetStub = sinon.stub(element, "_financialReset");
+
     });
 
-    teardown(() => financialResetStub.restore());
+    teardown(() => {
+      financialResetStub.restore();
+      RisePlayerConfiguration.getDisplayId = {};
+    });
 
     suiteSetup( () => {
       clock = sinon.useFakeTimers();
@@ -69,6 +80,22 @@
 
       test( "should set instrument fields array", () => {
         assert.deepEqual( element.instrumentFields, [ "lastPrice", "netChange" ] );
+      } );
+
+    } );
+
+    suite( "_isValidType", () => {
+
+      test( "should return true if 'type' attribute is 'realtime'", () => {
+        assert.isTrue( element._isValidType( "realtime" ) );
+      } );
+
+      test( "should return true if 'type' attribute is 'historical'", () => {
+        assert.isTrue( element._isValidType( "historical" ) );
+      } );
+
+      test( "should return false when invalid", () => {
+        assert.isFalse( element._isValidType( "test" ) );
       } );
 
     } );
@@ -254,7 +281,8 @@
       } );
 
       teardown( () => {
-        element._getInstruments.restore();
+        stub.restore();
+        setFirebaseConnectionStatus( true );
       } );
 
       test( "should set firebase connected status and call '_getInstruments()' when still needing instruments", () => {
@@ -284,6 +312,54 @@
         assert.isFalse( element._firebaseConnected );
 
         element._firebaseConnected = true;
+      } );
+
+    } );
+
+    suite( "ready", () => {
+      test( "should set display id when a valid display id is provided", () => {
+        assert.equal( element.displayId, "ABC123" );
+      } );
+    } );
+
+    suite( "go", () => {
+
+      teardown( () => {
+        element._goPending = false;
+        element._initialGo = true;
+      } );
+
+      test( "should flag that a go() is pending if instruments have not been received", () => {
+        element._instrumentsReceived = false;
+        element.go();
+
+        assert.isTrue( element._goPending );
+      } );
+
+      test( "should call _getData() when this is the initial go() call", () => {
+        const spy = sinon.stub( element, "_getData" );
+
+        element._instrumentsReceived = true;
+        element.go();
+
+        assert.isFalse( element._goPending, "_goPending set to false" );
+        assert.isTrue( spy.calledOnce, "_getData is called" );
+        assert.isFalse( element._initialGo, "_initialGo set to false" );
+
+        spy.restore();
+      } );
+
+      test( "should not call _getData() when this is not initial go", () => {
+        const spy = sinon.stub( element, "_getData" );
+
+        element._instrumentsReceived = true;
+        element._initialGo = false;
+
+        element.go();
+
+        assert.equal( spy.callCount, 0, "_getData is not called" );
+
+        spy.restore();
       } );
 
     } );

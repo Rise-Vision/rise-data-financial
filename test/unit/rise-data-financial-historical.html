@@ -22,20 +22,23 @@
 </test-fixture>
 
 <script>
-  suite("rise-data-financial", () => {
+  suite("rise-data-financial - Historical", () => {
 
     let element,
-      clock;
+      clock,
+      financialResetStub;
 
     setup(() => {
       RisePlayerConfiguration.getDisplayId = () => {
         return "ABC123";
       };
 
-      element = fixture("test-block")
+      element = fixture("test-block");
+      financialResetStub = sinon.stub(element, "_financialReset");
     });
 
     teardown(() => {
+      financialResetStub.restore();
       RisePlayerConfiguration.getDisplayId = {};
     });
 
@@ -47,15 +50,18 @@
       clock.restore();
     } );
 
+    suite( "_isValidDuration", () => {
 
-    suite( "financial list id change", () => {
+      test( "should return true if retrieving historical data for a valid duration", () => {
+        assert.isTrue( element._isValidDuration( "Week", "historical" ) );
+      } );
 
-      test( "should call _financialReset()", () => {
-        let changedStub = sinon.stub( element, "_financialReset" );
+      test( "should return false if retrieving historical data for an invalid duration", () => {
+        assert.isFalse( element._isValidDuration( "week", "historical" ) );
+      } );
 
-        element.setAttribute( "financial-list", "abc123" );
-        assert.isTrue( changedStub.calledOnce );
-        changedStub.restore();
+      test( "should return true if not retrieving historical data", () => {
+        assert.isTrue( element._isValidDuration( "week", "realtime" ) );
       } );
 
     } );
