@@ -26,6 +26,28 @@ class RiseDataFinancial extends PolymerElement {
       },
 
       /**
+       * Type of data to fetch, either "realtime" or "historical".
+       */
+      type: {
+        type: String,
+        value: "realtime"
+      },
+
+      /**
+       * Interval for which data should be retrieved.
+       * Valid values are: Day, Week, 1M, 3M, 6M, 1Y, 5Y.
+       */
+      duration: {
+        type: String,
+        value: "1M"
+      },
+
+      /**
+       * A single instrument symbol to return data for
+       */
+      symbol: String,
+
+      /**
        * The id of the display running this instance of the component.
        */
       displayId: {
@@ -50,6 +72,8 @@ class RiseDataFinancial extends PolymerElement {
     this._firebaseConnected = undefined;
     this._instrumentsReceived = false;
     this._connectDebounceJob = null;
+    this._goPending = false;
+    this._initialGo = true;
   }
 
   ready() {
@@ -57,7 +81,15 @@ class RiseDataFinancial extends PolymerElement {
 
     console.log( "financialServerConfig", financialServerConfig );
 
-    // TODO: this is ideal place to retrieve display id from RisePlayerConfiguration (or whatever method to retrieve we implement)
+    const display_id = RisePlayerConfiguration.getDisplayId();
+
+    if ( display_id && typeof display_id === "string" && display_id !== "DISPLAY_ID" ) {
+      this._setDisplayId( display_id );
+    }
+
+    if ( this._goPending ) {
+      this.go();
+    }
   }
 
   connectedCallback() {
@@ -72,6 +104,7 @@ class RiseDataFinancial extends PolymerElement {
     super.disconnectedCallback();
 
     this._connectedRef.off( "value", this._handleConnected );
+    this._instrumentsRef.off( "value", this._handleInstruments );
   }
 
   _getInstrumentsFromLocalStorage( key ) {
@@ -147,7 +180,9 @@ class RiseDataFinancial extends PolymerElement {
 
     console.log( "_handleInstruments", this._instruments );
 
-    // TODO: initiate getting data
+    if ( this._goPending ) {
+      this.go();
+    }
   }
 
   _financialReset() {
@@ -174,6 +209,58 @@ class RiseDataFinancial extends PolymerElement {
     // if number is not defined or is invalid, assign the infinity
     // value to make sure the item stay at the bottom
     return Number.isInteger( x ) ? x : Number.POSITIVE_INFINITY;
+  }
+
+  _isValidType( type ) {
+    return type === "realtime" || type === "historical";
+  }
+
+  _isValidDuration( duration, type ) {
+    if ( type.toLowerCase() === "historical" ) {
+      // Parameters passed to financial server are case sensitive.
+      return [ "Day", "Week", "1M", "3M", "6M", "1Y", "5Y" ].indexOf( duration ) !== -1;
+    } else {
+      return true;
+    }
+  }
+
+  _getData( props, instruments, fields ) {
+    if ( !this._isValidType( props.type ) || !this._isValidDuration( props.duration, props.type )) {
+      return;
+    }
+
+    console.log( "_getData", instruments, fields );
+
+    // TODO: configure JSONP request
+  }
+
+  /**
+   * Performs a request to obtain the financial data
+   *
+   */
+  go() {
+    if ( !this._instrumentsReceived ) {
+      this._goPending = true;
+      return;
+    }
+
+    this._goPending = false;
+
+    if ( this._initialGo ) {
+      this._initialGo = false;
+
+      // configure and execute request
+      this._getData(
+        {
+          type: this.type,
+          duration: this.duration,
+        },
+        this._instruments,
+        this.instrumentFields
+      );
+
+    }
+
   }
 
 }
