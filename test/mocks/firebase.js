@@ -45,6 +45,13 @@ let _firebaseConnectionStatus = true,
                     }
                   }
                 });
+              },
+              off: ( key ) => {
+                if ( key !== "value" ) {
+                  return;
+                }
+
+                fireConnStatusCallback = undefined;
               }
             };
           }
