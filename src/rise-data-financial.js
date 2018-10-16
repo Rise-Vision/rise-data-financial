@@ -1,19 +1,34 @@
 /* eslint-disable no-console */
 
-import { PolymerElement } from "@polymer/polymer/polymer-element.js";
+import { PolymerElement, html } from "@polymer/polymer";
 import { timeOut } from "@polymer/polymer/lib/utils/async.js";
 import { Debouncer } from "@polymer/polymer/lib/utils/debounce.js";
 import { database } from "./rise-data-financial-config.js";
 import { financialServerConfig } from "./rise-data-financial-config.js";
+import "@polymer/iron-jsonp-library/iron-jsonp-library.js";
 
 class RiseDataFinancial extends PolymerElement {
+
+  static get template() {
+    return html`
+      <iron-jsonp-library
+            id="financial"
+            notify-event="financial-data"
+            library-loaded="{{financialDataLoaded}}"
+            library-error-message="{{financialErrorMessage}}">
+        </iron-jsonp-library>
+    `;
+  }
 
   static get properties() {
     return {
       /**
        * ID of the financial list in Financial Selector.
        */
-      financialList: String,
+      financialList: {
+        type: String,
+        value: ""
+      },
 
       /**
        * The list of instruments fields the component should return data for
@@ -45,7 +60,10 @@ class RiseDataFinancial extends PolymerElement {
       /**
        * A single instrument symbol to return data for
        */
-      symbol: String,
+      symbol: {
+        type: String,
+        value: ""
+      },
 
       /**
        * The id of the display running this instance of the component.
@@ -84,18 +102,22 @@ class RiseDataFinancial extends PolymerElement {
     this._instrumentsReceived = false;
     this._connectDebounceJob = null;
     this._initialStart = true;
+    this._invalidSymbol = false;
   }
 
   ready() {
     super.ready();
-
-    console.log( "financialServerConfig", financialServerConfig );
 
     const display_id = RisePlayerConfiguration.getDisplayId();
 
     if ( display_id && typeof display_id === "string" && display_id !== "DISPLAY_ID" ) {
       this._setDisplayId( display_id );
     }
+
+    // TEMPORARY - listen for event to override displayId value
+    this.addEventListener( "override-displayid", ( event ) => {
+      this._setDisplayId( event.detail.id );
+    });
   }
 
   connectedCallback() {
@@ -106,6 +128,7 @@ class RiseDataFinancial extends PolymerElement {
     this._connectedRef.on( "value", this._handleConnected );
 
     this.addEventListener( RiseDataFinancial.EVENT_START, this._handleStart );
+    this.$.financial.addEventListener( "financial-data", this._handleData );
   }
 
   disconnectedCallback() {
@@ -115,6 +138,7 @@ class RiseDataFinancial extends PolymerElement {
     this._instrumentsRef.off( "value", this._handleInstruments );
 
     this.removeEventListener( RiseDataFinancial.EVENT_START, this._handleStart );
+    this.$.financial.removeEventListener( "financial-data", this._handleData );
   }
 
   _getInstrumentsFromLocalStorage( key ) {
@@ -227,14 +251,89 @@ class RiseDataFinancial extends PolymerElement {
     }
   }
 
+  _handleData( event ) {
+    console.log( "_handleData", event.detail );
+
+    // TODO: handle data and also handle error in response here
+  }
+
+  _getSymbols( instruments ) {
+    const symbols = instruments.map(({ symbol }) => symbol );
+
+    if ( this.symbol ) {
+      if ( symbols.indexOf( this.symbol ) != -1 ) {
+        return this.symbol;
+      } else {
+        this._invalidSymbol = true;
+        this._sendFinancialEvent( "invalid-symbol" );
+
+        return "";
+      }
+    }
+
+    return symbols.join( "|" );
+  }
+
+  _getQueryString( fields ) {
+    if ( fields.length === 0 ) {
+      return "";
+    }
+
+    return `select ${ fields.join( "," ) }`;
+  }
+
+  _getParams( fields, symbols, callback ) {
+
+    return Object.assign({},
+      {
+        id: this.displayId,
+        code: symbols,
+        tqx: `out:json;responseHandler:${callback}`
+      },
+      fields.length > 0 ? { tq: this._getQueryString( fields ) } : null );
+  }
+
+  _getKey() {
+    return `risedatafinancial_${this.type}_${this.displayId}_${this.financialList}_${this.duration}_${this.symbol}`;
+  }
+
+  _getCallbackValue( key ) {
+    return ( btoa(( this.id ? this.id : "" ) + key )).substr( 0, 10 ) + ( Math.random().toString()).substring( 2 );
+  }
+
+  _getSerializedUrl( url, params ) {
+    const queryParams = Object.keys( params ).reduce(( arr, key ) => {
+      return arr.push( key + "=" + encodeURIComponent( params[ key ])) && arr;
+    }, []).join( "&" );
+
+    return `${url}?${queryParams}`;
+  }
+
   _getData( props, instruments, fields ) {
     if ( !this._isValidType( props.type ) || !this._isValidDuration( props.duration, props.type )) {
       return;
     }
 
-    console.log( "_getData", instruments, fields );
+    const symbols = this._getSymbols( instruments );
 
-    // TODO: configure JSONP request
+    if ( !this._invalidSymbol ) {
+      // set callback with the same value it was set on the responseHandler of the tqx parameter
+      const financial = this.$.financial,
+        callbackValue = this._getCallbackValue( this._getKey());
+
+      let params = this._getParams( fields, symbols, callbackValue ),
+        url;
+
+      if ( props.type === "realtime" ) {
+        url = this._getSerializedUrl( financialServerConfig.realTimeURL, params );
+      } else {
+        params.kind = props.duration;
+        url = this._getSerializedUrl( financialServerConfig.historicalURL, params );
+      }
+
+      financial.callbackName = callbackValue;
+      financial.libraryUrl = url;
+    }
   }
 
   _handleStart() {
