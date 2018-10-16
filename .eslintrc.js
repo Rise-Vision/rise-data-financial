@@ -20,5 +20,8 @@ module.exports = {
       "error",
       "always"
     ]
+  },
+  "globals": {
+    "RisePlayerConfiguration": false
   }
 };

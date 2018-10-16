@@ -26,6 +26,28 @@ class RiseDataFinancial extends PolymerElement {
       },
 
       /**
+       * Type of data to fetch, either "realtime" or "historical".
+       */
+      type: {
+        type: String,
+        value: "realtime"
+      },
+
+      /**
+       * Interval for which data should be retrieved.
+       * Valid values are: Day, Week, 1M, 3M, 6M, 1Y, 5Y.
+       */
+      duration: {
+        type: String,
+        value: "1M"
+      },
+
+      /**
+       * A single instrument symbol to return data for
+       */
+      symbol: String,
+
+      /**
        * The id of the display running this instance of the component.
        */
       displayId: {
@@ -44,12 +66,24 @@ class RiseDataFinancial extends PolymerElement {
     ]
   }
 
+  // Event name constants
+  static get EVENT_INSTRUMENTS_RECEIVED() {
+    return "instruments-received";
+  }
+  static get EVENT_INSTRUMENTS_UNAVAILABLE() {
+    return "instruments-unavailable";
+  }
+  static get EVENT_START() {
+    return "start";
+  }
+
   constructor() {
     super();
 
     this._firebaseConnected = undefined;
     this._instrumentsReceived = false;
     this._connectDebounceJob = null;
+    this._initialStart = true;
   }
 
   ready() {
@@ -57,7 +91,11 @@ class RiseDataFinancial extends PolymerElement {
 
     console.log( "financialServerConfig", financialServerConfig );
 
-    // TODO: this is ideal place to retrieve display id from RisePlayerConfiguration (or whatever method to retrieve we implement)
+    const display_id = RisePlayerConfiguration.getDisplayId();
+
+    if ( display_id && typeof display_id === "string" && display_id !== "DISPLAY_ID" ) {
+      this._setDisplayId( display_id );
+    }
   }
 
   connectedCallback() {
@@ -66,12 +104,17 @@ class RiseDataFinancial extends PolymerElement {
     this._connectedRef = database.ref( ".info/connected" );
     this._handleConnected = this._handleConnected.bind( this );
     this._connectedRef.on( "value", this._handleConnected );
+
+    this.addEventListener( RiseDataFinancial.EVENT_START, this._handleStart );
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
 
     this._connectedRef.off( "value", this._handleConnected );
+    this._instrumentsRef.off( "value", this._handleInstruments );
+
+    this.removeEventListener( RiseDataFinancial.EVENT_START, this._handleStart );
   }
 
   _getInstrumentsFromLocalStorage( key ) {
@@ -103,12 +146,9 @@ class RiseDataFinancial extends PolymerElement {
           this._instrumentsReceived = true;
           this._instruments = instruments;
 
-          console.log( "retrieved instruments via localStorage", this._instruments );
-
-          // TODO: initiate getting data
-
+          this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, this._instruments );
         })
-        .catch(() => this._sendFinancialEvent( "rise-financial-no-data" ));
+        .catch(() => this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_UNAVAILABLE ));
     }
   }
 
@@ -145,9 +185,7 @@ class RiseDataFinancial extends PolymerElement {
     this._instrumentsReceived = true;
     this._saveInstruments( this._instruments );
 
-    console.log( "_handleInstruments", this._instruments );
-
-    // TODO: initiate getting data
+    this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, this._instruments );
   }
 
   _financialReset() {
@@ -174,6 +212,51 @@ class RiseDataFinancial extends PolymerElement {
     // if number is not defined or is invalid, assign the infinity
     // value to make sure the item stay at the bottom
     return Number.isInteger( x ) ? x : Number.POSITIVE_INFINITY;
+  }
+
+  _isValidType( type ) {
+    return type === "realtime" || type === "historical";
+  }
+
+  _isValidDuration( duration, type ) {
+    if ( type.toLowerCase() === "historical" ) {
+      // Parameters passed to financial server are case sensitive.
+      return [ "Day", "Week", "1M", "3M", "6M", "1Y", "5Y" ].indexOf( duration ) !== -1;
+    } else {
+      return true;
+    }
+  }
+
+  _getData( props, instruments, fields ) {
+    if ( !this._isValidType( props.type ) || !this._isValidDuration( props.duration, props.type )) {
+      return;
+    }
+
+    console.log( "_getData", instruments, fields );
+
+    // TODO: configure JSONP request
+  }
+
+  _handleStart() {
+    if ( !this._instrumentsReceived ) {
+      return;
+    }
+
+    if ( this._initialStart ) {
+      this._initialStart = false;
+
+      // configure and execute request
+      this._getData(
+        {
+          type: this.type,
+          duration: this.duration,
+        },
+        this._instruments,
+        this.instrumentFields
+      );
+
+    }
+
   }
 
 }
