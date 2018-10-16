@@ -167,12 +167,12 @@
         }, 500);
       } );
 
-      test( "should fire 'rise-financial-no-data' if firebase not connected and localStorage empty", ( done ) => {
+      test( "should send 'instruments-unavailable' event if firebase not connected and localStorage empty", ( done ) => {
         let listener = () => {
           element._getInstrumentsFromLocalStorage.restore();
           element._firebaseConnected = true;
           element._instrumentsReceived = true;
-          element.removeEventListener( "rise-financial-no-data", listener );
+          element.removeEventListener( "instruments-unavailable", listener );
           done();
         };
 
@@ -183,7 +183,7 @@
         element._instrumentsReceived = false;
         element._firebaseConnected = false;
 
-        element.addEventListener( "rise-financial-no-data", listener );
+        element.addEventListener( "instruments-unavailable", listener );
         element._getInstruments();
       } );
 
@@ -209,24 +209,41 @@
 
     suite( "_handleInstruments", () => {
 
-      test( "should set _instruments", () => {
+      test( "should set _instruments and send 'instruments-received' event", ( done ) => {
+        let listener = () => {
+          element.removeEventListener( "instruments-received", listener );
+
+          assert.deepEqual( element._instruments, [ inst1 ] );
+
+          done();
+        };
+
+        element.addEventListener( "instruments-received", listener );
+
         element._handleInstruments( {
           val: () => {
             return instrument;
           }
         } );
-
-        assert.deepEqual( element._instruments, [ inst1 ] );
       } );
 
-      test( "should not set _instruments", () => {
+      test( "should set _instruments to empty array and send 'instruments-received' event", ( done ) => {
+        let listener = () => {
+          element.removeEventListener( "instruments-received", listener );
+
+          assert.deepEqual( element._instruments, [] );
+
+          done();
+        };
+
+        element.addEventListener( "instruments-received", listener );
+
         element._handleInstruments( {
           val: () => {
             return null;
           }
         } );
 
-        assert.deepEqual( element._instruments, [] );
       } );
 
     } );
@@ -322,40 +339,34 @@
       } );
     } );
 
-    suite( "go", () => {
+    suite( "_handleStart", () => {
 
       teardown( () => {
-        element._goPending = false;
-        element._initialGo = true;
+        element._initialStart = true;
       } );
 
-      test( "should flag that a go() is pending if instruments have not been received", () => {
-        element._instrumentsReceived = false;
-        element.go();
-
-        assert.isTrue( element._goPending );
-      } );
-
-      test( "should call _getData() when this is the initial go() call", () => {
+      test( "should call _getData() when this is the initial 'start'", () => {
         const spy = sinon.stub( element, "_getData" );
 
         element._instrumentsReceived = true;
-        element.go();
 
-        assert.isFalse( element._goPending, "_goPending set to false" );
+        const event = new CustomEvent( "start" );
+        element.dispatchEvent( event );
+
         assert.isTrue( spy.calledOnce, "_getData is called" );
-        assert.isFalse( element._initialGo, "_initialGo set to false" );
+        assert.isFalse( element._initialStart, "_initialStart set to false" );
 
         spy.restore();
       } );
 
-      test( "should not call _getData() when this is not initial go", () => {
+      test( "should not call _getData() when this is not the initial start", () => {
         const spy = sinon.stub( element, "_getData" );
 
         element._instrumentsReceived = true;
-        element._initialGo = false;
+        element._initialStart = false;
 
-        element.go();
+        const event = new CustomEvent( "getData" );
+        element.dispatchEvent( event );
 
         assert.equal( spy.callCount, 0, "_getData is not called" );
 

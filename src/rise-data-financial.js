@@ -66,14 +66,24 @@ class RiseDataFinancial extends PolymerElement {
     ]
   }
 
+  // Event name constants
+  static get EVENT_INSTRUMENTS_RECEIVED() {
+    return "instruments-received";
+  }
+  static get EVENT_INSTRUMENTS_UNAVAILABLE() {
+    return "instruments-unavailable";
+  }
+  static get EVENT_START() {
+    return "start";
+  }
+
   constructor() {
     super();
 
     this._firebaseConnected = undefined;
     this._instrumentsReceived = false;
     this._connectDebounceJob = null;
-    this._goPending = false;
-    this._initialGo = true;
+    this._initialStart = true;
   }
 
   ready() {
@@ -86,10 +96,6 @@ class RiseDataFinancial extends PolymerElement {
     if ( display_id && typeof display_id === "string" && display_id !== "DISPLAY_ID" ) {
       this._setDisplayId( display_id );
     }
-
-    if ( this._goPending ) {
-      this.go();
-    }
   }
 
   connectedCallback() {
@@ -98,6 +104,8 @@ class RiseDataFinancial extends PolymerElement {
     this._connectedRef = database.ref( ".info/connected" );
     this._handleConnected = this._handleConnected.bind( this );
     this._connectedRef.on( "value", this._handleConnected );
+
+    this.addEventListener( RiseDataFinancial.EVENT_START, this._handleStart );
   }
 
   disconnectedCallback() {
@@ -105,6 +113,8 @@ class RiseDataFinancial extends PolymerElement {
 
     this._connectedRef.off( "value", this._handleConnected );
     this._instrumentsRef.off( "value", this._handleInstruments );
+
+    this.removeEventListener( RiseDataFinancial.EVENT_START, this._handleStart );
   }
 
   _getInstrumentsFromLocalStorage( key ) {
@@ -136,12 +146,9 @@ class RiseDataFinancial extends PolymerElement {
           this._instrumentsReceived = true;
           this._instruments = instruments;
 
-          console.log( "retrieved instruments via localStorage", this._instruments );
-
-          // TODO: initiate getting data
-
+          this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, this._instruments );
         })
-        .catch(() => this._sendFinancialEvent( "rise-financial-no-data" ));
+        .catch(() => this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_UNAVAILABLE ));
     }
   }
 
@@ -178,11 +185,7 @@ class RiseDataFinancial extends PolymerElement {
     this._instrumentsReceived = true;
     this._saveInstruments( this._instruments );
 
-    console.log( "_handleInstruments", this._instruments );
-
-    if ( this._goPending ) {
-      this.go();
-    }
+    this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, this._instruments );
   }
 
   _financialReset() {
@@ -234,20 +237,13 @@ class RiseDataFinancial extends PolymerElement {
     // TODO: configure JSONP request
   }
 
-  /**
-   * Performs a request to obtain the financial data
-   *
-   */
-  go() {
+  _handleStart() {
     if ( !this._instrumentsReceived ) {
-      this._goPending = true;
       return;
     }
 
-    this._goPending = false;
-
-    if ( this._initialGo ) {
-      this._initialGo = false;
+    if ( this._initialStart ) {
+      this._initialStart = false;
 
       // configure and execute request
       this._getData(
