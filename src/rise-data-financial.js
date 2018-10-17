@@ -14,7 +14,6 @@ class RiseDataFinancial extends PolymerElement {
       <iron-jsonp-library
             id="financial"
             notify-event="financial-data"
-            library-loaded="{{financialDataLoaded}}"
             library-error-message="{{financialErrorMessage}}">
         </iron-jsonp-library>
     `;
@@ -80,7 +79,8 @@ class RiseDataFinancial extends PolymerElement {
   // a comma-separated list of one or more dependencies.
   static get observers() {
     return [
-      "_financialReset(financialList, symbol)"
+      "_financialReset(financialList, symbol)",
+      "_handleError(financialErrorMessage)"
     ]
   }
 
@@ -93,6 +93,15 @@ class RiseDataFinancial extends PolymerElement {
   }
   static get EVENT_START() {
     return "start";
+  }
+  static get EVENT_DATA_UPDATE() {
+    return "data-update";
+  }
+  static get EVENT_DATA_ERROR() {
+    return "data-error";
+  }
+  static get EVENT_REQUEST_ERROR() {
+    return "request-error";
   }
 
   constructor() {
@@ -128,6 +137,8 @@ class RiseDataFinancial extends PolymerElement {
     this._connectedRef.on( "value", this._handleConnected );
 
     this.addEventListener( RiseDataFinancial.EVENT_START, this._handleStart );
+
+    this._handleData = this._handleData.bind( this );
     this.$.financial.addEventListener( "financial-data", this._handleData );
   }
 
@@ -251,10 +262,42 @@ class RiseDataFinancial extends PolymerElement {
     }
   }
 
-  _handleData( event ) {
-    console.log( "_handleData", event.detail );
+  _handleError() {
+    this._sendFinancialEvent( RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
 
-    // TODO: handle data and also handle error in response here
+    //TODO: start a refresh timer
+  }
+
+  _handleData( event ) {
+    if ( !event.detail || !event.detail.length ) {
+      return;
+    }
+
+    const detail = event.detail [ 0 ];
+
+    if ( detail.hasOwnProperty( "errors" ) && detail.errors.length === 1 ) {
+      this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_ERROR, detail.errors[ 0 ]);
+    } else {
+      let instruments = this._instruments,
+        data = {};
+
+      if ( this.symbol && !this._invalidSymbol ) {
+        instruments = this._instruments.filter(( obj ) => {
+          return obj.symbol === this.symbol;
+        });
+      }
+
+      data = { instruments: instruments };
+
+      if ( detail.hasOwnProperty( "table" ) && detail.table ) {
+        data.data = detail.table;
+      }
+
+      this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_UPDATE, data );
+    }
+
+    //TODO: start a refresh timer
+
   }
 
   _getSymbols( instruments ) {
