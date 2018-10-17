@@ -24,7 +24,8 @@
 <script>
   suite("rise-data-financial", () => {
 
-    const inst1 = {
+    const fields = [ "lastPrice", "netChange" ],
+      inst1 = {
         category: "Stocks",
         index: 0,
         name: "Alcoa",
@@ -263,6 +264,219 @@
 
         assert.deepEqual( JSON.parse( localStorage.getItem( `risedatafinancial_${element.financialList}` ) ),
           [ inst1 ] ); // eslint-disable-line quotes
+      } );
+
+    } );
+
+    suite( "_getParams", () => {
+
+      test( "should return query parameters object", () => {
+
+        const callback = ( btoa( "request" + element._getKey() ) ).substr( 0, 10 ) + Math.random(),
+          expected = {
+            id: "ABC123",
+            code: inst1.symbol,
+            tq: "select lastPrice,netChange",
+            tqx: "out:json;responseHandler:" + callback,
+          };
+
+        assert.deepEqual( element._getParams( fields, inst1.symbol, callback ), expected );
+      } );
+
+      test( "should return query parameters object with no 'tq' property", () => {
+        const callback = ( btoa( "request" + element._getKey() ) ).substr( 0, 10 ) + Math.random(),
+          expected = {
+            id: "ABC123",
+            code: inst1.symbol,
+            tqx: "out:json;responseHandler:" + callback,
+          };
+
+        assert.deepEqual( element._getParams( [], inst1.symbol, callback ), expected );
+      } );
+
+    } );
+
+    suite( "_getQueryString", () => {
+
+      test( "should return query string for fetching a specific set of fields", () => {
+        const expected = "select lastPrice,netChange";
+
+        assert.equal( element._getQueryString( fields ), expected );
+      } );
+
+      test( "should return empty string if no parameter specified", () => {
+        assert.equal( element._getQueryString( [] ), "" );
+      } );
+
+    } );
+
+    suite( "_getSymbols", () => {
+
+      teardown( () => {
+        element.setAttribute( "symbol", "" );
+        element._invalidSymbol = false;
+      } );
+
+      test( "should return empty string if no instruments", () => {
+        assert.equal( element._getSymbols( [] ), "" );
+      } );
+
+      test( "should return string of instrument symbols separated by |", () => {
+        assert.equal( element._getSymbols( instruments ), "AA.N|.DJI" );
+      } );
+
+      test( "should return only the single symbol if the symbol attribute is set and it is within the list of instruments", () => {
+        element.setAttribute( "symbol", ".DJI" );
+        assert.equal( element._getSymbols( instruments ), ".DJI" );
+      } );
+
+      test( "should set invalidSymbol and send 'invalid-symbol' event", ( done ) => {
+        let listener = () => {
+          element.removeEventListener( "invalid-symbol", listener );
+
+          assert.isTrue( element._invalidSymbol );
+
+          done();
+        };
+
+        element.addEventListener( "invalid-symbol", listener );
+
+        element.setAttribute( "symbol", ".TEST" );
+        assert.equal( element._getSymbols( instruments ), "" );
+      } );
+
+    } );
+
+    suite( "_getKey()", () => {
+
+      test( "should return correct key value when configured with defaults and without symbol", () => {
+        const expected = `risedatafinancial_${element.type}_${element.displayId}_${element.financialList}_${element.duration}_`;
+        assert.equal( element._getKey(), expected );
+      } );
+
+      test( "should return correct key value when configured different from defaults and with symbol", () => {
+        element.symbol = instrument.symbol;
+        element.type = "historical";
+        element.duration = "week";
+
+        const expected = `risedatafinancial_${element.type}_${element.displayId}_${element.financialList}_${element.duration}_${element.symbol}`;
+        assert.equal( element._getKey(), expected );
+      } );
+
+    });
+
+    suite( "_getSerializedUrl", () => {
+
+      test( "should return a serialized url with query params", () => {
+        const callback = element._getCallbackValue( element._getKey() ),
+          params = {
+            id: "ABC123",
+            code: inst1.symbol,
+            tq: "select lastPrice,netChange",
+            tqx: "out:json;responseHandler:" + callback,
+          },
+          expected = `https://contentfinancial2.appspot.com/data?id=ABC123&code=AA.N&tq=select%20lastPrice%2CnetChange&tqx=out%3Ajson%3BresponseHandler%3A${callback}`;
+
+        assert.equal( element._getSerializedUrl( "https://contentfinancial2.appspot.com/data", params ), expected );
+      } );
+
+    });
+
+    suite( "_getData", () => {
+
+      const props = {
+          type: "realtime",
+          duration: "1M",
+        };
+
+      test( "should not execute if component configured with an invalid type", () => {
+        const stub = sinon.stub( element, "_getSymbols" );
+
+        element._getData( { type: "invalid", duration: "1M" }, instruments, [] );
+
+        assert.isFalse( stub.called );
+
+        stub.restore();
+      } );
+
+      test( "should not execute if component configured for historical with an invalid duration", () => {
+        const stub = sinon.stub( element, "_getSymbols" );
+
+        element._getData( { type: "historical", duration: "invalid" }, instruments, [] );
+
+        assert.isFalse( stub.called );
+
+        stub.restore();
+      } );
+
+      test( "should call '_getSerializedUrl()' with realtime financial test server url", () => {
+        const stub = sinon.stub( element, "_getSerializedUrl" );
+
+        element._getData( props, instruments, [] );
+
+        assert.equal( stub.args[0][0], "https://contentfinancial2-test.appspot.com/data" );
+
+        stub.restore();
+      } );
+
+      test( "should call '_getSerializedUrl()' with historical financial test server url", () => {
+        const stub = sinon.stub( element, "_getSerializedUrl" );
+
+        props.type = "historical";
+        element._getData( props, instruments, [] );
+
+        assert.equal( stub.args[0][0], "https://contentfinancial2-test.appspot.com/data/historical" );
+
+        props.type = "realtime";
+        stub.restore();
+      } );
+
+      test( "should call '_getSerializedUrl()' with correct params for single instrument", () => {
+        const stub = sinon.stub( element, "_getSerializedUrl" );
+
+        const expected = {
+          id: "ABC123",
+          code: "AA.N",
+          tq: "select lastPrice,netChange"
+        };
+
+        element._getData( props, [ inst1 ], fields );
+        assert.equal( stub.args[0][1].id, expected.id );
+        assert.equal( stub.args[0][1].code, expected.code );
+        assert.equal( stub.args[0][1].tq, expected.tq );
+        assert.include( stub.args[0][1].tqx, "out:json;responseHandler:" );
+
+        stub.restore();
+      } );
+
+      test( "should call '_getSerializedUrl()' with correct params for multiple instruments", () => {
+        const stub = sinon.stub( element, "_getSerializedUrl" );
+
+        const expected = {
+          id: "ABC123",
+          code: "AA.N|.DJI",
+          tq: "select lastPrice,netChange"
+        };
+
+        element._getData( props, instruments, fields );
+
+        assert.equal( stub.args[0][1].id, expected.id );
+        assert.equal( stub.args[0][1].code, expected.code );
+        assert.equal( stub.args[0][1].tq, expected.tq );
+        assert.include( stub.args[0][1].tqx, "out:json;responseHandler:" );
+
+        stub.restore();
+      } );
+
+      test( "should not execute request if symbol is invalid", () => {
+        const stub = sinon.stub( element, "_getSerializedUrl" );
+
+        element.setAttribute( "symbol", ".YYY" );
+        element._getData( props, instruments, fields );
+
+        assert.isFalse( stub.called );
+
+        stub.restore();
       } );
 
     } );
