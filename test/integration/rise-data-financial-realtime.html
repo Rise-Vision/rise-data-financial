@@ -50,8 +50,8 @@
 
     suite( "financial list id change", () => {
 
-      test( "should call _financialReset()", () => {
-        let changedStub = sinon.stub( element, "_financialReset" );
+      test( "should call _reset()", () => {
+        let changedStub = sinon.stub( element, "_reset" );
 
         element.setAttribute( "financial-list", "abc123" );
         assert.isTrue( changedStub.calledOnce );

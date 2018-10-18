@@ -50,7 +50,7 @@
 
     let element,
       clock,
-      financialResetStub;
+      _resetStub;
 
     setup(() => {
       RisePlayerConfiguration.getDisplayId = () => {
@@ -58,12 +58,12 @@
       };
 
       element = fixture("test-block");
-      financialResetStub = sinon.stub(element, "_financialReset");
+      _resetStub = sinon.stub(element, "_reset");
 
     });
 
     teardown(() => {
-      financialResetStub.restore();
+      _resetStub.restore();
       RisePlayerConfiguration.getDisplayId = {};
     });
 
@@ -576,7 +576,7 @@
 
     } );
 
-    suite( "_financialReset", () => {
+    suite( "_reset", () => {
       let instrumentsStub;
 
       setup( () => {
@@ -587,14 +587,16 @@
         instrumentsStub.restore();
       } );
 
-      test( "should call _getInstruments()", () => {
+      test( "should call _getInstruments() if not initial start", () => {
         // need to remove the stub and add back on every test
-        financialResetStub.restore();
-        element._financialReset();
+        _resetStub.restore();
+        element._initialStart = false;
+        element._reset();
 
+        assert.isTrue( element._getDataPending );
         assert.isTrue( instrumentsStub.calledOnce );
 
-        financialResetStub = sinon.stub( element, "_financialReset" );
+        _resetStub = sinon.stub( element, "_reset" );
       } );
 
     } );
