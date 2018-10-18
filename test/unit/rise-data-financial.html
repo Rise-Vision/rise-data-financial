@@ -21,6 +21,8 @@
   </template>
 </test-fixture>
 
+<script src="../data/realtime.js"></script>
+
 <script>
   suite("rise-data-financial", () => {
 
@@ -477,6 +479,99 @@
         assert.isFalse( stub.called );
 
         stub.restore();
+      } );
+
+    } );
+
+    suite( "_handleData", () => {
+      setup( () => {
+        element._instruments = instruments;
+      } );
+
+      teardown( () => {
+        element._instruments = [];
+        element.removeAttribute( "symbol" );
+      } );
+
+      test( "should send 'data-update' event with instruments and data", ( done ) => {
+        const listener = ( evt ) => {
+          assert.deepEqual( evt.detail, {
+            instruments: instruments,
+            data: realTimeData.table,
+          } );
+
+          element.removeEventListener( "data-update", listener );
+          done();
+        };
+
+        element.addEventListener( "data-update", listener );
+        element._handleData( { detail: [ realTimeData ] } );
+      } );
+
+      test( "should send 'data-update' event with instruments and data for a single instrument when symbol is set", ( done ) => {
+        const listener = ( evt ) => {
+          assert.deepEqual( evt.detail, {
+            instruments: [ inst2 ],
+            data: realTimeData.table,
+          } );
+
+          element.removeEventListener( "data-update", listener );
+          done();
+        };
+
+        element.setAttribute( "symbol", ".DJI" );
+        element._invalidSymbol = false;
+        element._instruments = instruments;
+
+        element.addEventListener( "data-update", listener );
+        element._handleData( { detail: [ realTimeData ] } );
+      } );
+
+      test( "should send 'data-update' event with instruments only when no table provided", ( done ) => {
+        const listener = ( evt ) => {
+          assert.deepEqual( evt.detail, {
+            instruments: instruments
+          } );
+
+          element.removeEventListener( "data-update", listener );
+          done();
+        };
+
+        element.addEventListener( "data-update", listener );
+        element._handleData( { detail: [ {} ] } );
+      } );
+
+      test( "should send 'data-error' event with detail when 'errors' prop present in response detail", ( done ) => {
+        const listener = ( evt ) => {
+          assert.deepEqual( evt.detail, {
+            detailed_message: "400: Test error message",
+            message: "Test error message"
+          } );
+
+          element.removeEventListener( "data-error", listener );
+          done();
+        };
+
+        element.addEventListener( "data-error", listener );
+        element._handleData( { detail: [ { errors: [ { detailed_message: "400: Test error message", message: "Test error message" } ] } ] } );
+      } );
+
+    } );
+
+    suite( "_handleError", () => {
+
+      test( "should send 'request-error' event with message provided from iron-jsonp-library", ( done ) => {
+        const listener = ( evt ) => {
+          assert.deepEqual( evt.detail, {
+            message: "Test error message"
+          } );
+
+          element.removeEventListener( "request-error", listener );
+          done();
+        };
+
+        element.addEventListener( "request-error", listener );
+        element.financialErrorMessage = "Test error message";
       } );
 
     } );
