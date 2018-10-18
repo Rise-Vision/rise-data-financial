@@ -21,6 +21,8 @@
   </template>
 </test-fixture>
 
+<script src="../data/realtime.js"></script>
+
 <script>
   suite("rise-data-financial", () => {
 
@@ -47,6 +49,32 @@
       clock.restore();
     } );
 
+    suite( "refresh", () => {
+      let spy;
+
+      setup( () => {
+        spy = sinon.spy( element, "_refresh" );
+      } );
+
+      teardown( () => {
+        spy.restore();
+      } );
+
+      test( "should start refresh timer on successful JSONP response", () => {
+        element._initialStart = false;
+        element._handleData( { detail: [ realTimeData ] } );
+
+        assert( spy.calledOnce );
+      } );
+
+      test( "should start refresh timer on failed JSON request", () => {
+        element._initialStart = false;
+        element._handleError();
+
+        assert( spy.calledOnce );
+      } );
+
+    } );
 
     suite( "financial list id change", () => {
 
