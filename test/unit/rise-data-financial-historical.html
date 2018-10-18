@@ -26,7 +26,7 @@
 
     let element,
       clock,
-      financialResetStub;
+      resetStub;
 
     setup(() => {
       RisePlayerConfiguration.getDisplayId = () => {
@@ -34,11 +34,11 @@
       };
 
       element = fixture("test-block");
-      financialResetStub = sinon.stub(element, "_financialReset");
+      resetStub = sinon.stub(element, "_reset");
     });
 
     teardown(() => {
-      financialResetStub.restore();
+      resetStub.restore();
       RisePlayerConfiguration.getDisplayId = {};
     });
 

@@ -50,7 +50,7 @@
 
     let element,
       clock,
-      financialResetStub;
+      _resetStub;
 
     setup(() => {
       RisePlayerConfiguration.getDisplayId = () => {
@@ -58,12 +58,12 @@
       };
 
       element = fixture("test-block");
-      financialResetStub = sinon.stub(element, "_financialReset");
+      _resetStub = sinon.stub(element, "_reset");
 
     });
 
     teardown(() => {
-      financialResetStub.restore();
+      _resetStub.restore();
       RisePlayerConfiguration.getDisplayId = {};
     });
 
@@ -127,11 +127,32 @@
 
     } );
 
+    suite( "_refresh", () => {
+
+      test( "should make a new request for data after 1 minute", () => {
+        const stub = sinon.stub( element, "_getData" );
+
+        element._refresh();
+
+        assert.isFalse( stub.calledOnce );
+
+        clock.tick( 60000 );
+
+        assert.isTrue( stub.calledWith({
+          duration: "1M",
+          type: "realtime"
+        }, element._instruments, [ "lastPrice", "netChange" ]) );
+
+        stub.restore();
+      } );
+
+    } );
+
     suite( "_getInstruments", () => {
       let spy;
 
       setup( () => {
-        spy = sinon.spy( element, "_handleInstruments" );
+        spy = sinon.stub( element, "_handleInstruments" );
       } );
 
       teardown( () => {
@@ -560,6 +581,8 @@
 
     suite( "_handleError", () => {
 
+      setup(() => element._initialStart = false);
+
       test( "should send 'request-error' event with message provided from iron-jsonp-library", ( done ) => {
         const listener = ( evt ) => {
           assert.deepEqual( evt.detail, {
@@ -576,7 +599,7 @@
 
     } );
 
-    suite( "_financialReset", () => {
+    suite( "_reset", () => {
       let instrumentsStub;
 
       setup( () => {
@@ -587,14 +610,16 @@
         instrumentsStub.restore();
       } );
 
-      test( "should call _getInstruments()", () => {
+      test( "should call _getInstruments() if not initial start", () => {
         // need to remove the stub and add back on every test
-        financialResetStub.restore();
-        element._financialReset();
+        _resetStub.restore();
+        element._initialStart = false;
+        element._reset();
 
+        assert.isTrue( element._getDataPending );
         assert.isTrue( instrumentsStub.calledOnce );
 
-        financialResetStub = sinon.stub( element, "_financialReset" );
+        _resetStub = sinon.stub( element, "_reset" );
       } );
 
     } );
@@ -650,25 +675,44 @@
 
     suite( "_handleStart", () => {
 
-      teardown( () => {
-        element._initialStart = true;
-      } );
-
       test( "should call _getData() when this is the initial 'start'", () => {
-        const spy = sinon.stub( element, "_getData" );
+        const stub = sinon.stub( element, "_getData" );
 
         element._instrumentsReceived = true;
 
         const event = new CustomEvent( "start" );
         element.dispatchEvent( event );
 
-        assert.isTrue( spy.calledOnce, "_getData is called" );
+        assert.isTrue( stub.calledWith({
+          duration: "1M",
+          type: "realtime"
+        }, element._instruments, [ "lastPrice", "netChange" ]) );
+
         assert.isFalse( element._initialStart, "_initialStart set to false" );
 
-        spy.restore();
+        stub.restore();
       } );
 
-      test( "should not call _getData() when this is not the initial start", () => {
+      test( "should call _getData() when this is not the initial 'start' but _getDataPending is true", () => {
+        const stub = sinon.stub( element, "_getData" );
+
+        element._instrumentsReceived = true;
+        element._getDataPending = true;
+
+        const event = new CustomEvent( "start" );
+        element.dispatchEvent( event );
+
+        assert.isTrue( stub.calledWith({
+          duration: "1M",
+          type: "realtime"
+        }, element._instruments, [ "lastPrice", "netChange" ]) );
+
+        assert.isFalse( element._initialStart, "_initialStart set to false" );
+
+        stub.restore();
+      } );
+
+      test( "should not call _getData() when this is not the initial start and _getDataPending is false", () => {
         const spy = sinon.stub( element, "_getData" );
 
         element._instrumentsReceived = true;

@@ -79,7 +79,7 @@ class RiseDataFinancial extends PolymerElement {
   // a comma-separated list of one or more dependencies.
   static get observers() {
     return [
-      "_financialReset(financialList, symbol)",
+      "_reset(financialList, symbol)",
       "_handleError(financialErrorMessage)"
     ]
   }
@@ -110,8 +110,10 @@ class RiseDataFinancial extends PolymerElement {
     this._firebaseConnected = undefined;
     this._instrumentsReceived = false;
     this._connectDebounceJob = null;
+    this._refreshDebounceJob = null;
     this._initialStart = true;
     this._invalidSymbol = false;
+    this._getDataPending = false;
   }
 
   ready() {
@@ -223,8 +225,12 @@ class RiseDataFinancial extends PolymerElement {
     this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, this._instruments );
   }
 
-  _financialReset() {
-    this._getInstruments();
+  _reset() {
+    if ( !this._initialStart ) {
+      this._getDataPending = true;
+      this._refreshDebounceJob && this._refreshDebounceJob.cancel();
+      this._getInstruments();
+    }
   }
 
   _sendFinancialEvent( eventName, detail = {}) {
@@ -263,9 +269,10 @@ class RiseDataFinancial extends PolymerElement {
   }
 
   _handleError() {
-    this._sendFinancialEvent( RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
-
-    //TODO: start a refresh timer
+    if ( !this._initialStart ) {
+      this._sendFinancialEvent( RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
+      this._refresh();
+    }
   }
 
   _handleData( event ) {
@@ -296,8 +303,7 @@ class RiseDataFinancial extends PolymerElement {
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_UPDATE, data );
     }
 
-    //TODO: start a refresh timer
-
+    this._refresh();
   }
 
   _getSymbols( instruments ) {
@@ -379,13 +385,29 @@ class RiseDataFinancial extends PolymerElement {
     }
   }
 
+  _refresh() {
+    if ( !this._refreshDebounceJob || !this._refreshDebounceJob.isActive()) {
+      this._refreshDebounceJob = Debouncer.debounce( this._refreshDebounceJob, timeOut.after( 60000 ), () => {
+        this._getData(
+          {
+            type: this.type,
+            duration: this.duration,
+          },
+          this._instruments,
+          this.instrumentFields
+        );
+      });
+    }
+  }
+
   _handleStart() {
     if ( !this._instrumentsReceived ) {
       return;
     }
 
-    if ( this._initialStart ) {
+    if ( this._initialStart || this._getDataPending ) {
       this._initialStart = false;
+      this._getDataPending = false;
 
       // configure and execute request
       this._getData(
