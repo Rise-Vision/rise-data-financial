@@ -1,0 +1,106 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- import firebase from CDN, bundling into rise-data-financial not possible -->
+  <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-database.js"></script>
+
+  <script src="../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+  <script src="../node_modules/@webcomponents/webcomponentsjs/custom-elements-es5-adapter.js"></script>
+  <script type="module">
+    // this and the following block are needed at build time to force the creation of the shared bundle script
+    import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+  </script>
+  <script type="module">
+    import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+  </script>
+  <script src="https://widgets.risevision.com/beta/common/config-test.js"></script>
+  <script src="https://widgets.risevision.com/beta/common/rise-player-configuration.js"></script>
+  <script src="https://widgets.risevision.com/beta/common/rise-local-messaging.js"></script>
+  <script src="https://widgets.risevision.com/beta/common/rise-helpers.js"></script>
+  <script src="https://widgets.risevision.com/beta/common/rise-logger.js"></script>
+  <script src="https://widgets.risevision.com/beta/common/rise-local-storage.js"></script>
+  <script src="https://widgets.risevision.com/beta/common/rise-component-loader.js"></script>
+  <script>
+    if (document.domain.indexOf("localhost") === -1) {
+      try {
+        document.domain = "risevision.com";
+      } catch (err) {
+        // can't set document.domain, risevision.com not an accepted suffix of current document domain
+        console.log("document.domain can't be set", err);
+      }
+    }
+  </script>
+  <script>
+    console.log("configuring");
+
+    // electron / websocket or chromeos / window
+    RisePlayerConfiguration.configure({
+      playerType: "stable",
+      playerVersion: "TEST_VERSION",
+      os: "TEST_OS"
+    }, {
+      player: "chromeos",
+      connectionType: "window"
+    });
+  </script>
+</head>
+
+<body>
+  <script>
+    function configureComponents(event) {
+      if ( !event.detail.isLoaded ) {
+        console.log( "load process failed" );
+        return;
+      }
+
+      const start = new CustomEvent( "start" ),
+        // temporarily forcing a specific display id to be used
+        overrideDisplayId = new CustomEvent( "override-displayid", {
+          bubbles: true,
+          detail: { id: "Y8SAH3CQ6NMP" }
+        } ),
+        financial01 = document.querySelector('#rise-data-financial-01');
+
+      financial01.addEventListener( "instruments-received", ( evt ) => {
+        console.log("instruments received", evt.detail);
+
+        console.log("temporarily force display id");
+        financial01.dispatchEvent(overrideDisplayId);
+
+        console.log("dispatching 'start' event");
+        financial01.dispatchEvent(start);
+      } );
+
+      financial01.addEventListener( "instruments-unavailable", () => {
+        console.log("instruments unavailable");
+      } );
+
+      financial01.addEventListener( "data-update", ( evt ) => {
+        console.log( "data update", evt.detail );
+      } );
+
+      financial01.addEventListener( "data-error", ( evt ) => {
+        console.log( "data error", evt.detail );
+      } );
+
+      financial01.addEventListener( "request-error", ( evt ) => {
+        console.log( "request error", evt.detail );
+      } );
+    }
+
+    window.addEventListener( "rise-components-loaded", configureComponents );
+  </script>
+
+  <rise-data-financial
+    id="rise-data-financial-01"
+    financial-list = "-Kd1xh1DkzpmBeCdfLiB"
+    instrument-fields='["name", "lastPrice", "netChange", "percentChange", "accumulatedVolume"]'>
+  </rise-data-financial>
+
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "rise-data-financial-demo",
+  "version": "1.0.0",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "@polymer/polymer": "^3.0.5",
+    "@webcomponents/webcomponentsjs": "^2.1.3"
+  },
+  "devDependencies": {
+    "wct-browser-legacy": "^1.0.1"
+  }
+}
