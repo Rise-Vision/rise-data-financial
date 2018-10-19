@@ -5,6 +5,22 @@
 `rise-data-financial` is a Polymer 3 Web Component that works together with the [Rise Vision Financial Selector](https://selector.risevision.com/), a web app for managing financial content. It retrieves the financial list and its corresponding instruments from [Firebase](https://firebase.google.com/). Data is refreshed in realtime, so any changes that are made to a particular financial list in the Financial Selector are immediately propagated to the `rise-data-financial` component.
 
 ## Usage
+The component has an external dependency on [Firebase](https://firebase.google.com/) and has not been built to bundle the required SDK libraries. This means the required Firebase libraries must be explicitly imported in the `<head>` of the HTML page that you are using the component. **_Note_**: The version of Firebase used below is just for example purposes.
+
+```
+<html>
+  <head>
+	...
+	<script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-database.js"></script>
+    ...
+  </head>
+  <body>
+    ...
+  </body>
+</html>
+```
+
 The below illustrates simple usage of the component and listening to the `rise-components-loaded` event to initiate. This is required in order to know that the component has been imported to the page. See the demo section in this repo for a full working example of an HTML page using the component which will illustrate required imports in the `<head>` of the page. 
 
 ### Example
@@ -53,10 +69,10 @@ If no `instrument-fields` attribute is provided, all fields are returned by defa
 #### Example
 
 ```
-<rise-financial
+<rise-data-financial
   financial-list="-ABC123DEF456"
   instrument-fields='["instrument", "name"]'>
-</rise-financial>
+</rise-data-financial>
 ```
 
 ### Historical Data
@@ -71,13 +87,13 @@ In case the list of instruments contains more than one instrument an attribute `
 #### Example
 
 ```
-<rise-financial
+<rise-data-financial
   duration="1M"
   financial-list="-ABC123DEF456"
   instrument-fields='["closePrice", "percentChange"]'
   type="historical"
   symbol="AAPL.O">
-</rise-financial>
+</rise-data-financial>
 ```
 
 ### Data Object
