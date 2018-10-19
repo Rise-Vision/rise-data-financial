@@ -2,3 +2,5 @@ build/
 dist/
 node_modules/
 src/rise-data-financial-config.js
+demo/build
+demo/node_modules
