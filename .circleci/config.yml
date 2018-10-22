@@ -143,8 +143,8 @@ workflows:
             - install
       - build:
           requires:
-            - generate-version
             - test
+            - generate-version
           filters:
             branches:
               only:
