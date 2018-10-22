@@ -40,7 +40,7 @@ jobs:
           key: node-cache-{{ checksum "package.json" }}
       - run: |
           VERSION=$(cat version-string/version)
-          sed "
+          sed -i "
             s/__VERSION__/$VERSION/;
           " config/version.js
       - run: npm run build
@@ -141,11 +141,11 @@ workflows:
             - install
       - build:
           requires:
+            - generate-version
             - test
       - deploy-stage:
           requires:
             - gcloud-setup
-            - generate-version
             - build
           filters:
             branches:
@@ -157,7 +157,6 @@ workflows:
           stage: beta
           requires:
             - gcloud-setup
-            - generate-version
             - build
           filters:
             branches:
@@ -167,7 +166,6 @@ workflows:
           stage: stable
           requires:
             - gcloud-setup
-            - generate-version
             - build
           filters:
             branches:
