@@ -143,6 +143,12 @@ workflows:
           requires:
             - generate-version
             - test
+          filters:
+            branches:
+              only:
+                - /^(stage|staging)[/].*/
+                - master
+                - build/stable  
       - deploy-stage:
           requires:
             - gcloud-setup
