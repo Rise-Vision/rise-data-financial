@@ -38,6 +38,11 @@ jobs:
       - checkout
       - restore_cache:
           key: node-cache-{{ checksum "package.json" }}
+      - run: |
+          VERSION=$(cat version-string/version)
+          sed "
+            s/__VERSION__/$VERSION/;
+          " config/version.js
       - run: npm run build
       - persist_to_workspace:
           root: .
