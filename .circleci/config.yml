@@ -42,7 +42,7 @@ jobs:
           VERSION=$(cat version-string/version)
           sed -i "
             s/__VERSION__/$VERSION/;
-          " config/version.js
+          " src/rise-data-financial-version.js
       - run: npm run build
       - persist_to_workspace:
           root: .
@@ -148,7 +148,7 @@ workflows:
               only:
                 - /^(stage|staging)[/].*/
                 - master
-                - build/stable  
+                - build/stable
       - deploy-stage:
           requires:
             - gcloud-setup
