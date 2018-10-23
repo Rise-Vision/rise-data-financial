@@ -36,8 +36,15 @@ jobs:
     docker: *BUILDIMAGE
     steps:
       - checkout
+      - attach_workspace:
+          at: .
       - restore_cache:
           key: node-cache-{{ checksum "package.json" }}
+      - run: |
+          VERSION=$(cat version-string/version)
+          sed -i "
+            s/__VERSION__/$VERSION/;
+          " src/rise-data-financial-version.js
       - run: npm run build
       - persist_to_workspace:
           root: .
@@ -137,10 +144,16 @@ workflows:
       - build:
           requires:
             - test
+            - generate-version
+          filters:
+            branches:
+              only:
+                - /^(stage|staging)[/].*/
+                - master
+                - build/stable
       - deploy-stage:
           requires:
             - gcloud-setup
-            - generate-version
             - build
           filters:
             branches:
@@ -152,7 +165,6 @@ workflows:
           stage: beta
           requires:
             - gcloud-setup
-            - generate-version
             - build
           filters:
             branches:
@@ -162,7 +174,6 @@ workflows:
           stage: stable
           requires:
             - gcloud-setup
-            - generate-version
             - build
           filters:
             branches:

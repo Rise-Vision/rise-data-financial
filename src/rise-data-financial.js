@@ -5,6 +5,7 @@ import { timeOut } from "@polymer/polymer/lib/utils/async.js";
 import { Debouncer } from "@polymer/polymer/lib/utils/debounce.js";
 import { database } from "./rise-data-financial-config.js";
 import { financialServerConfig } from "./rise-data-financial-config.js";
+import { version } from "./rise-data-financial-version.js";
 import "@polymer/iron-jsonp-library/iron-jsonp-library.js";
 
 class RiseDataFinancial extends PolymerElement {
@@ -114,6 +115,8 @@ class RiseDataFinancial extends PolymerElement {
     this._initialStart = true;
     this._invalidSymbol = false;
     this._getDataPending = false;
+
+    console.log( "version is: ", version );
   }
 
   ready() {
