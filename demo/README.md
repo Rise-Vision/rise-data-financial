@@ -35,12 +35,16 @@ The below options illustrate different ways to run this demo, however option A i
 #### ChrOS Player as Packaged App in Chrome browser
 
 All the contents of _build/prod_ must be uploaded to Rise Storage.
+To avoid CORS issues, the server domain of the published file must be
+risevision.com.
 
 Then create a schedule that targets the URL of the published file, for example:
 
-`https://storage.googleapis.com/risemedialibrary-xxxxx-yyyy-xxx/src/rise-data-financial-chromeos.html`
+`http://widgets.risevision.com/staging/pages/2018.XX.XX.XX.XX/src/rise-data-financial-chromeos.html`
 
 Then configure the local environment as described in the [Financial Templates First - Local Development](https://docs.google.com/document/d/1xbtDo9GnhbH0lGeQmgTdSb-U5ed0vTjufhxZBV-1C4A/edit) document.
+It's not necessary to point the schedule to a local URL as it's described
+there, with the above URL for the schedule is enough.
 
 Once the application has been configured and ran, there will not be any visual aspects to the demo. You can view the dev console (follow instructions in document) and you will see logs pertaining to the component and eventual data retrieved.
 
