@@ -42,6 +42,8 @@ Then create a schedule that targets the URL of the published file, for example:
 
 `http://widgets.risevision.com/staging/pages/2018.XX.XX.XX.XX/src/rise-data-financial-chromeos.html`
 
+Note that this is an HTTP URL, as ChromeOS currently requires that.
+
 Then configure the local environment as described in the [Financial Templates First - Local Development](https://docs.google.com/document/d/1xbtDo9GnhbH0lGeQmgTdSb-U5ed0vTjufhxZBV-1C4A/edit) document.
 It's not necessary to point the schedule to a local URL as it's described
 there, with the above URL for the schedule is enough.
