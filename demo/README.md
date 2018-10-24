@@ -8,6 +8,10 @@ Install global npm dependencies
 npm install -g polymer-cli
 ```
 
+**Note**: If EPERM errors occur then install polymer-cli using the
+`--unsafe-perm` flag ( `npm install -g polymer-cli --unsafe-perm` )
+and/or using sudo.
+
 ## Build
 
 Create a standalone project using the contents of this directory as a base.
@@ -38,9 +42,9 @@ Then create a schedule that targets the URL of the published file, for example:
 
 Then configure the local environment as described in the [Financial Templates First - Local Development](https://docs.google.com/document/d/1xbtDo9GnhbH0lGeQmgTdSb-U5ed0vTjufhxZBV-1C4A/edit) document.
 
-Once the application has been configured and ran, there will not be any visual aspects to the demo. You can view the dev console (follow instructions in document) and you will see logs pertaining to the component and eventual data retrieved. 
+Once the application has been configured and ran, there will not be any visual aspects to the demo. You can view the dev console (follow instructions in document) and you will see logs pertaining to the component and eventual data retrieved.
 
-#### Note 
+#### Note
 
 It's also possible to use another remote or local server other than Rise Storage, but there is a catch. Doing so will result in CORS-related errors due to browser restrictions.
 
@@ -63,7 +67,7 @@ Then create a schedule that targets the URL of the published file, for example:
 
 `https://storage.googleapis.com/risemedialibrary-xxxxx-yyyy-xxx/src/rise-data-financial-chromeos.html`
 
-#### Note 
+#### Note
 
 The page can be hosted on a different server or even a local server if your machine is capable of running a local Electron Player.
 
