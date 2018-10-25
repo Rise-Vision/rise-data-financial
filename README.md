@@ -4,6 +4,9 @@
 
 `rise-data-financial` is a Polymer 3 Web Component that works together with the [Rise Vision Financial Selector](https://selector.risevision.com/), a web app for managing financial content. It retrieves the financial list and its corresponding instruments from [Firebase](https://firebase.google.com/). Data is refreshed in realtime, so any changes that are made to a particular financial list in the Financial Selector are immediately propagated to the `rise-data-financial` component.
 
+Instructions for demo page here:
+https://github.com/Rise-Vision/rise-data-financial/blob/master/demo/README.md
+
 ## Usage
 The component has an external dependency on [Firebase](https://firebase.google.com/) and has not been built to bundle the required SDK libraries. This means the required Firebase libraries must be explicitly imported in the `<head>` of the HTML page that you are using the component. **_Note_**: The version of Firebase used below is just for example purposes.
 
@@ -21,7 +24,7 @@ The component has an external dependency on [Firebase](https://firebase.google.c
 </html>
 ```
 
-The below illustrates simple usage of the component and listening to the `rise-components-loaded` event to initiate. This is required in order to know that the component has been imported to the page. See the demo section in this repo for a full working example of an HTML page using the component which will illustrate required imports in the `<head>` of the page. 
+The below illustrates simple usage of the component and listening to the `rise-components-loaded` event to initiate. This is required in order to know that the component has been imported to the page. See the demo section in this repo for a full working example of an HTML page using the component which will illustrate required imports in the `<head>` of the page.
 
 ### Example
 
@@ -33,7 +36,7 @@ The below illustrates simple usage of the component and listening to the `rise-c
           console.log( "load process failed" );
           return;
         }
-        
+
         const financial = document.querySelector( "rise-data-financial" );
 
         financial.addEventListener( "instruments-received", () => {
@@ -46,17 +49,17 @@ The below illustrates simple usage of the component and listening to the `rise-c
           console.log( "data update", evt.detail );
         } );
       }
-      
+
       window.addEventListener( "rise-components-loaded", onComponentsLoaded);
     </script>
-    
+
     <rise-data-financial
       id="financial01"
       financial-list="-ABC123DEF456"
       instrument-fields='["instrument", "name", "lastPrice", "netChange"]'>
     </rise-data-financial>
 ...
-    
+
   </body>
 ```
 ### Realtime Data
@@ -110,15 +113,15 @@ _instruments_ is an object that provides details about every instrument found in
 
 The component sends the following events:
 
-- **_instruments-received_**: Instruments for the financial list provided have been successfully received from Firebase. The component is ready to execute getting data by dispatching _start_ event on the component. 
-- **_instruments-unavailable_**: Instruments were not able to be retrieved and the component will not be able to execute getting data. Potential reasons could be no network, required Firebase imports were not included in HTML page, or the financial list provided was not found. 
+- **_instruments-received_**: Instruments for the financial list provided have been successfully received from Firebase. The component is ready to execute getting data by dispatching _start_ event on the component.
+- **_instruments-unavailable_**: Instruments were not able to be retrieved and the component will not be able to execute getting data. Potential reasons could be no network, required Firebase imports were not included in HTML page, or the financial list provided was not found.
 - **_data-update_**: Data has been retrieved and the data object is provided in `event.detail`
 - **_data-error_**: The financial server responded with a Error and the object is provided in `event.detail`
-- **_request-error_**: There was a problem making the JSONP request to Financial server and the message object is provided in `event.detail`. 
+- **_request-error_**: There was a problem making the JSONP request to Financial server and the message object is provided in `event.detail`.
 
 The component is listening for the following events:
 
-- **_start_**: This event will initiate getting data from Financial server. It can be dispatch on the component when _instruments-received_ event has been fired as that event indicates the component successfully retrieved instruments and is ready to make a request to the Financial server to retrieve data. 
+- **_start_**: This event will initiate getting data from Financial server. It can be dispatch on the component when _instruments-received_ event has been fired as that event indicates the component successfully retrieved instruments and is ready to make a request to the Financial server to retrieve data.
 
 
 
@@ -137,8 +140,8 @@ Clone this repo and change into this project directory.
 Execute the following commands in Terminal:
 
 ```
-npm install 
-npm install -g polymer-cli 
+npm install
+npm install -g polymer-cli
 npm run build
 ```
 
