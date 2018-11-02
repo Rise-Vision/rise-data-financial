@@ -127,11 +127,6 @@ class RiseDataFinancial extends PolymerElement {
     if ( display_id && typeof display_id === "string" && display_id !== "DISPLAY_ID" ) {
       this._setDisplayId( display_id );
     }
-
-    // TEMPORARY - listen for event to override displayId value
-    this.addEventListener( "override-displayid", ( event ) => {
-      this._setDisplayId( event.detail.id );
-    });
   }
 
   connectedCallback() {

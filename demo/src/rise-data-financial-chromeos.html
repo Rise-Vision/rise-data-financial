@@ -31,12 +31,10 @@
     }
   </script>
   <script>
-    console.log("configuring");
-
     // electron / websocket or chromeos / window
     RisePlayerConfiguration.configure({
-      displayId: "DISPLAY_ID",
-      companyId: "COMPANY_ID",
+      displayId: "Y8SAH3CQ6NMP",
+      companyId: "7fa5ee92-7deb-450b-a8d5-e5ed648c575f",
       playerType: "beta",
       playerVersion: "TEST_VERSION",
       os: "TEST_OS"
@@ -56,18 +54,10 @@
       }
 
       const start = new CustomEvent( "start" ),
-        // temporarily forcing a specific display id to be used
-        overrideDisplayId = new CustomEvent( "override-displayid", {
-          bubbles: true,
-          detail: { id: "Y8SAH3CQ6NMP" }
-        } ),
         financial01 = document.querySelector('#rise-data-financial-01');
 
       financial01.addEventListener( "instruments-received", ( evt ) => {
         console.log("instruments received", evt.detail);
-
-        console.log("temporarily force display id");
-        financial01.dispatchEvent(overrideDisplayId);
 
         console.log("dispatching 'start' event");
         financial01.dispatchEvent(start);
