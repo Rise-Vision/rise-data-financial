@@ -19,7 +19,8 @@
     import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
   </script>
   <script src="https://widgets.risevision.com/beta/common/config-test.min.js"></script>
-  <script src="https://widgets.risevision.com/beta/common/common-template.min.js"></script>
+  <script src="https://widgets.risevision.com/beta/common/common-template.js"></script>
+  <script src="https://widgets.risevision.com/beta/components/rise-data-financial/rise-data-financial.js"></script>
   <script>
     if (document.domain.indexOf("localhost") === -1) {
       try {
@@ -29,6 +30,47 @@
         console.log("document.domain can't be set", err);
       }
     }
+  </script>
+</head>
+
+<body>
+
+  <rise-data-financial
+    id="rise-data-financial-01"
+    financial-list = "-Kd1xh1DkzpmBeCdfLiB"
+    instrument-fields='["name", "lastPrice", "netChange", "percentChange", "accumulatedVolume"]'>
+  </rise-data-financial>
+
+  <script>
+    function configureComponents() {
+      const start = new CustomEvent( "start" ),
+        financial01 = document.querySelector('#rise-data-financial-01');
+
+      financial01.addEventListener( "instruments-received", ( evt ) => {
+        console.log("instruments received", evt.detail);
+
+        console.log("dispatching 'start' event");
+        financial01.dispatchEvent(start);
+      } );
+
+      financial01.addEventListener( "instruments-unavailable", () => {
+        console.log("instruments unavailable");
+      } );
+
+      financial01.addEventListener( "data-update", ( evt ) => {
+        console.log( "data update", evt.detail );
+      } );
+
+      financial01.addEventListener( "data-error", ( evt ) => {
+        console.log( "data error", evt.detail );
+      } );
+
+      financial01.addEventListener( "request-error", ( evt ) => {
+        console.log( "request error", evt.detail );
+      } );
+    }
+
+    window.addEventListener( "rise-components-ready", configureComponents );
   </script>
   <script>
     // electron / websocket or chromeos / window
@@ -44,51 +86,6 @@
       detail: { serverUrl: "http://localhost:8080" }
     });
   </script>
-</head>
-
-<body>
-<script>
-  function configureComponents(event) {
-    if ( !event.detail.isLoaded ) {
-      console.log( "load process failed" );
-      return;
-    }
-
-    const start = new CustomEvent( "start" ),
-      financial01 = document.querySelector('#rise-data-financial-01');
-
-    financial01.addEventListener( "instruments-received", ( evt ) => {
-      console.log("instruments received", evt.detail);
-
-      console.log("dispatching 'start' event");
-      financial01.dispatchEvent(start);
-    } );
-
-    financial01.addEventListener( "instruments-unavailable", () => {
-      console.log("instruments unavailable");
-    } );
-
-    financial01.addEventListener( "data-update", ( evt ) => {
-      console.log( "data update", evt.detail );
-    } );
-
-    financial01.addEventListener( "data-error", ( evt ) => {
-      console.log( "data error", evt.detail );
-    } );
-
-    financial01.addEventListener( "request-error", ( evt ) => {
-      console.log( "request error", evt.detail );
-    } );
-  }
-
-  window.addEventListener( "rise-components-loaded", configureComponents );
-</script>
-
-<rise-data-financial
-  id="rise-data-financial-01"
-  financial-list = "-Kd1xh1DkzpmBeCdfLiB"
-  instrument-fields='["name", "lastPrice", "netChange", "percentChange", "accumulatedVolume"]'>
-</rise-data-financial>
 
 </body>
 </html>
