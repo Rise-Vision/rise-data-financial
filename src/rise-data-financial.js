@@ -104,6 +104,9 @@ class RiseDataFinancial extends PolymerElement {
   static get EVENT_REQUEST_ERROR() {
     return "request-error";
   }
+  static get EVENT_INVALID_SYMBOL() {
+    return "invalid-symbol";
+  }
 
   constructor() {
     super();
@@ -115,8 +118,7 @@ class RiseDataFinancial extends PolymerElement {
     this._initialStart = true;
     this._invalidSymbol = false;
     this._getDataPending = false;
-
-    console.log( "version is: ", version );
+    this._logDataUpdate = true;
   }
 
   ready() {
@@ -152,6 +154,28 @@ class RiseDataFinancial extends PolymerElement {
     this.$.financial.removeEventListener( "financial-data", this._handleData );
   }
 
+  _getComponentData() {
+    return {
+      name: "rise-data-financial",
+      id: this.id,
+      version: version
+    };
+  }
+
+  _log( type, event, details = null ) {
+    switch ( type ) {
+    case "info":
+      RisePlayerConfiguration.Logger.info( this._getComponentData(), event, details );
+      break;
+    case "warning":
+      RisePlayerConfiguration.Logger.warning( this._getComponentData(), event, details );
+      break;
+    case "error":
+      RisePlayerConfiguration.Logger.error( this._getComponentData(), event, details );
+      break;
+    }
+  }
+
   _getInstrumentsFromLocalStorage( key ) {
     return new Promise(( resolve, reject ) => {
       try {
@@ -181,9 +205,13 @@ class RiseDataFinancial extends PolymerElement {
           this._instrumentsReceived = true;
           this._instruments = instruments;
 
+          this._log( "info", RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, { instruments: this._instruments, from: "localStorage" });
           this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, this._instruments );
         })
-        .catch(() => this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_UNAVAILABLE ));
+        .catch(() => {
+          this._log( "error", RiseDataFinancial.EVENT_INSTRUMENTS_UNAVAILABLE );
+          this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_UNAVAILABLE );
+        });
     }
   }
 
@@ -202,12 +230,22 @@ class RiseDataFinancial extends PolymerElement {
         if ( !this._connectDebounceJob || !this._connectDebounceJob.isActive()) {
           this._connectDebounceJob = Debouncer.debounce( this._connectDebounceJob, timeOut.after( 2000 ), () => {
             this._firebaseConnected = false;
+            this._log( "warning", "firebase not connected", {
+              financialList: this.financialList,
+              symbol: this.symbol
+            });
             this._getInstruments();
           });
         }
       } else {
         this._connectDebounceJob && this._connectDebounceJob.cancel();
         this._firebaseConnected = true;
+
+        this._log( "info", "firebase connected", {
+          financialList: this.financialList,
+          symbol: this.symbol
+        });
+
         this._getInstruments();
       }
     }
@@ -220,13 +258,21 @@ class RiseDataFinancial extends PolymerElement {
     this._instrumentsReceived = true;
     this._saveInstruments( this._instruments );
 
+    this._log( "info", RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, { instruments: this._instruments, from: "firebase" });
     this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, this._instruments );
   }
 
   _reset() {
     if ( !this._initialStart ) {
       this._getDataPending = true;
+      this._logDataUpdate = true;
       this._refreshDebounceJob && this._refreshDebounceJob.cancel();
+
+      this._log( "info", "reset", {
+        financialList: this.financialList,
+        symbol: this.symbol
+      });
+
       this._getInstruments();
     }
   }
@@ -268,6 +314,7 @@ class RiseDataFinancial extends PolymerElement {
 
   _handleError() {
     if ( !this._initialStart ) {
+      this._log( "error", RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
       this._sendFinancialEvent( RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
       this._refresh();
     }
@@ -281,6 +328,7 @@ class RiseDataFinancial extends PolymerElement {
     const detail = event.detail [ 0 ];
 
     if ( detail.hasOwnProperty( "errors" ) && detail.errors.length === 1 ) {
+      this._log( "error", RiseDataFinancial.EVENT_DATA_ERROR, { error: detail.errors[ 0 ] });
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_ERROR, detail.errors[ 0 ]);
     } else {
       let instruments = this._instruments,
@@ -298,6 +346,13 @@ class RiseDataFinancial extends PolymerElement {
         data.data = detail.table;
       }
 
+      if ( this._logDataUpdate ) {
+        // due to refresh every 60 seconds, prevent logging data-update event to BQ every time
+        this._logDataUpdate = false;
+
+        this._log( "info", RiseDataFinancial.EVENT_DATA_UPDATE, data );
+      }
+
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_UPDATE, data );
     }
 
@@ -308,11 +363,12 @@ class RiseDataFinancial extends PolymerElement {
     const symbols = instruments.map(({ symbol }) => symbol );
 
     if ( this.symbol ) {
-      if ( symbols.indexOf( this.symbol ) != -1 ) {
+      if ( symbols.includes( this.symbol )) {
         return this.symbol;
       } else {
         this._invalidSymbol = true;
-        this._sendFinancialEvent( "invalid-symbol" );
+        this._log( "warning", RiseDataFinancial.EVENT_INVALID_SYMBOL, this.symbol );
+        this._sendFinancialEvent( RiseDataFinancial.EVENT_INVALID_SYMBOL, this.symbol );
 
         return "";
       }

@@ -57,6 +57,12 @@
         return "ABC123";
       };
 
+      RisePlayerConfiguration.Logger = {
+        info: () => {},
+        warning: () => {},
+        error: () => {}
+      };
+
       element = fixture("test-block");
       _resetStub = sinon.stub(element, "_reset");
 
@@ -65,6 +71,7 @@
     teardown(() => {
       _resetStub.restore();
       RisePlayerConfiguration.getDisplayId = {};
+      RisePlayerConfiguration.Logger = {};
     });
 
     suiteSetup( () => {
@@ -614,9 +621,11 @@
         // need to remove the stub and add back on every test
         _resetStub.restore();
         element._initialStart = false;
+        element._logDataUpdate = false;
         element._reset();
 
         assert.isTrue( element._getDataPending );
+        assert.isTrue( element._logDataUpdate );
         assert.isTrue( instrumentsStub.calledOnce );
 
         _resetStub = sinon.stub( element, "_reset" );

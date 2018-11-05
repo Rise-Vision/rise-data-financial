@@ -1,0 +1,248 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="../../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+  <script src="../../node_modules/wct-browser-legacy/browser.js"></script>
+  <script src="../mocks/firebase.js"></script>
+  <script type="text/javascript">
+    RisePlayerConfiguration = {};
+  </script>
+  <script src="../../src/rise-data-financial-config.js" type="module"></script>
+  <script src="../../src/rise-data-financial.js" type="module"></script>
+</head>
+<body>
+<test-fixture id="test-block">
+  <template>
+    <rise-data-financial id="test" financial-list="Stocks" instrument-fields='["lastPrice", "netChange"]'></rise-data-financial>
+  </template>
+</test-fixture>
+
+<script src="../data/realtime.js"></script>
+
+<script>
+  suite("logging", () => {
+    const componentData = {
+      name: "rise-data-financial",
+      id: "test",
+      version: "__VERSION__"
+    },
+      inst1 = {
+        category: "Stocks",
+        index: 0,
+        name: "Alcoa",
+        symbol: "AA.N",
+        $id: "AA?N"
+      },
+      inst2 = {
+        category: "Stocks",
+        index: 1,
+        name: "Dow Jones",
+        symbol: ".DJI",
+        $id: "?DJI"
+      },
+      instrument = {
+        "AA?N": inst1
+      },
+      instruments = [
+        inst1, inst2
+      ];
+
+    let element,
+      clock;
+
+    setup(() => {
+      RisePlayerConfiguration.getDisplayId = () => {
+        return "ABC123";
+      };
+
+      RisePlayerConfiguration.Logger = {
+        info: sinon.spy(),
+        warning: sinon.spy(),
+        error: sinon.spy()
+      };
+
+      element = fixture("test-block");
+    });
+
+    teardown(() => {
+      RisePlayerConfiguration.getDisplayId = {};
+      RisePlayerConfiguration.Logger = {};
+    });
+
+    suiteSetup( () => {
+      clock = sinon.useFakeTimers();
+    } );
+
+    suiteTeardown( () => {
+      clock.restore();
+    } );
+
+    test( "should log 'firebase connected' info event", () => {
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 0 ], componentData );
+      assert.equal( RisePlayerConfiguration.Logger.info.args[ 0 ][ 1 ], "firebase connected");
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 2 ], {
+        financialList: element.financialList,
+        symbol: ""
+      } );
+    });
+
+    test( "should log 'firebase not connected' warning event", () => {
+      element._instrumentsReceived = false;
+      setFirebaseConnectionStatus( false );
+
+      sinon.stub( element, "_getInstruments" );
+
+      clock.tick( 2000 );
+
+      assert.deepEqual( RisePlayerConfiguration.Logger.warning.args[ 0 ][ 0 ], componentData );
+      assert.equal( RisePlayerConfiguration.Logger.warning.args[ 0 ][ 1 ], "firebase not connected");
+      assert.deepEqual( RisePlayerConfiguration.Logger.warning.args[ 0 ][ 2 ], {
+        financialList: element.financialList,
+        symbol: ""
+      } );
+
+      element._getInstruments.restore();
+      setFirebaseConnectionStatus( true );
+    });
+
+    test( "should log 'instruments-received' info event", () => {
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 1 ][ 0 ], componentData );
+      assert.equal( RisePlayerConfiguration.Logger.info.args[ 1 ][ 1 ], "instruments-received");
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 1 ][ 2 ], {
+        instruments: [ inst1 ],
+        from: "firebase"
+      });
+    });
+
+    test( "should log 'instruments-received' info event via localStorage if firebase not connected", ( done ) => {
+      clock.restore();
+
+      sinon.stub(element, "_getInstrumentsFromLocalStorage", ()=> {
+        return Promise.resolve(instruments);
+      });
+
+      element._instrumentsReceived = false;
+      element._instruments = undefined;
+      element._firebaseConnected = false;
+
+      element._getInstruments();
+
+      setTimeout(() => {
+        assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 2 ][ 0 ], componentData );
+        assert.equal( RisePlayerConfiguration.Logger.info.args[ 2 ][ 1 ], "instruments-received");
+        assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 2 ][ 2 ], {
+          instruments: instruments,
+          from: "localStorage"
+        });
+
+        clock = sinon.useFakeTimers();
+
+        done();
+      }, 500);
+    });
+
+    test( "should log 'instruments-unavailable' error event", ( done ) => {
+      clock.restore();
+
+      sinon.stub(element, "_getInstrumentsFromLocalStorage", ()=> {
+        return Promise.reject(null);
+      });
+
+      element._instrumentsReceived = false;
+      element._instruments = undefined;
+      element._firebaseConnected = false;
+
+      element._getInstruments();
+
+      setTimeout(() => {
+        assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 0 ], componentData );
+        assert.equal( RisePlayerConfiguration.Logger.error.args[ 0 ][ 1 ], "instruments-unavailable");
+        assert.isNull( RisePlayerConfiguration.Logger.error.args[ 0 ][ 2 ]);
+
+        clock = sinon.useFakeTimers();
+
+        done();
+      }, 500);
+    });
+
+    test( "should log 'request-error' error event", () => {
+      element._initialStart = false;
+      element.financialErrorMessage = "test error";
+
+      sinon.stub( element, "_refresh" );
+
+      element._handleError();
+
+      assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 0 ], componentData );
+      assert.equal( RisePlayerConfiguration.Logger.error.args[ 0 ][ 1 ], "request-error");
+      assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 2 ], { message: "test error" } );
+
+      element._refresh.restore();
+    } );
+
+    test( "should log 'data-error' error event", () => {
+      const errorEvent = {
+        detail: [ { errors: [ "test error" ] } ]
+      };
+
+      sinon.stub( element, "_refresh" );
+
+      element._handleData( errorEvent );
+
+      assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 0 ], componentData );
+      assert.equal( RisePlayerConfiguration.Logger.error.args[ 0 ][ 1 ], "data-error");
+      assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 2 ], { error: "test error" } );
+
+      element._refresh.restore();
+    } );
+
+    test( "should log 'data-update' info event", () => {
+      element._handleData( { detail: [ realTimeData ] } );
+
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 2 ][ 0 ], componentData );
+      assert.equal( RisePlayerConfiguration.Logger.info.args[ 2 ][ 1 ], "data-update");
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 2 ][ 2 ], {
+        instruments: [ inst1 ],
+        data: realTimeData.table,
+      } );
+
+      RisePlayerConfiguration.Logger.info.reset();
+      element._handleData( { detail: [ realTimeData ] } );
+
+      // should only log data-update event once
+      assert.isFalse( RisePlayerConfiguration.Logger.info.called );
+
+    } );
+
+    test( "should log 'invalid-symbol' warning event", () => {
+      element.symbol = "test";
+      element._getSymbols( instruments );
+
+      assert.deepEqual( RisePlayerConfiguration.Logger.warning.args[ 0 ][ 0 ], componentData );
+      assert.equal( RisePlayerConfiguration.Logger.warning.args[ 0 ][ 1 ], "invalid-symbol");
+      assert.equal( RisePlayerConfiguration.Logger.warning.args[ 0 ][ 2 ], "test" );
+    } );
+
+    test( "should log 'reset' info event", () => {
+      element._initialStart = false;
+
+      sinon.stub( element, "_getInstruments" );
+
+      element.symbol = "test";
+
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 2 ][ 0 ], componentData );
+      assert.equal( RisePlayerConfiguration.Logger.info.args[ 2 ][ 1 ], "reset");
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 2 ][ 2 ], {
+        financialList: element.financialList,
+        symbol: "test"
+      } );
+    } );
+  });
+</script>
+
+</body>
+</html>

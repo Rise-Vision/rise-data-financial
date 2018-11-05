@@ -34,11 +34,18 @@
         return "ABC123";
       };
 
+      RisePlayerConfiguration.Logger = {
+        info: () => {},
+        warning: () => {},
+        error: () => {}
+      };
+
       element = fixture("test-block")
     });
 
     teardown(() => {
       RisePlayerConfiguration.getDisplayId = {};
+      RisePlayerConfiguration.Logger = {};
     });
 
     suiteSetup( () => {

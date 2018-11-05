@@ -33,6 +33,12 @@
         return "ABC123";
       };
 
+      RisePlayerConfiguration.Logger = {
+        info: () => {},
+        warning: () => {},
+        error: () => {}
+      };
+
       element = fixture("test-block");
       resetStub = sinon.stub(element, "_reset");
     });
@@ -40,6 +46,7 @@
     teardown(() => {
       resetStub.restore();
       RisePlayerConfiguration.getDisplayId = {};
+      RisePlayerConfiguration.Logger = {};
     });
 
     suiteSetup( () => {
