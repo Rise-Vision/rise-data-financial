@@ -118,6 +118,7 @@ class RiseDataFinancial extends PolymerElement {
     this._initialStart = true;
     this._invalidSymbol = false;
     this._getDataPending = false;
+    this._logDataUpdate = true;
   }
 
   ready() {
@@ -229,14 +230,22 @@ class RiseDataFinancial extends PolymerElement {
         if ( !this._connectDebounceJob || !this._connectDebounceJob.isActive()) {
           this._connectDebounceJob = Debouncer.debounce( this._connectDebounceJob, timeOut.after( 2000 ), () => {
             this._firebaseConnected = false;
-            this._log( "warning", "firebase not connected" );
+            this._log( "warning", "firebase not connected", {
+              financialList: this.financialList,
+              symbol: this.symbol
+            });
             this._getInstruments();
           });
         }
       } else {
         this._connectDebounceJob && this._connectDebounceJob.cancel();
         this._firebaseConnected = true;
-        this._log( "info", "firebase connected" );
+
+        this._log( "info", "firebase connected", {
+          financialList: this.financialList,
+          symbol: this.symbol
+        });
+
         this._getInstruments();
       }
     }
@@ -256,7 +265,14 @@ class RiseDataFinancial extends PolymerElement {
   _reset() {
     if ( !this._initialStart ) {
       this._getDataPending = true;
+      this._logDataUpdate = true;
       this._refreshDebounceJob && this._refreshDebounceJob.cancel();
+
+      this._log( "info", "reset", {
+        financialList: this.financialList,
+        symbol: this.symbol
+      });
+
       this._getInstruments();
     }
   }
@@ -330,7 +346,13 @@ class RiseDataFinancial extends PolymerElement {
         data.data = detail.table;
       }
 
-      this._log( "info", RiseDataFinancial.EVENT_DATA_UPDATE, data );
+      if ( this._logDataUpdate ) {
+        // due to refresh every 60 seconds, prevent logging data-update event to BQ every time
+        this._logDataUpdate = false;
+
+        this._log( "info", RiseDataFinancial.EVENT_DATA_UPDATE, data );
+      }
+
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_UPDATE, data );
     }
 
