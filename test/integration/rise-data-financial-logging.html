@@ -84,7 +84,10 @@
     test( "should log 'firebase connected' info event", () => {
       assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 0 ], componentData );
       assert.equal( RisePlayerConfiguration.Logger.info.args[ 0 ][ 1 ], "firebase connected");
-      assert.isNull( RisePlayerConfiguration.Logger.info.args[ 0 ][ 2 ] );
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 2 ], {
+        financialList: element.financialList,
+        symbol: ""
+      } );
     });
 
     test( "should log 'firebase not connected' warning event", () => {
@@ -97,7 +100,10 @@
 
       assert.deepEqual( RisePlayerConfiguration.Logger.warning.args[ 0 ][ 0 ], componentData );
       assert.equal( RisePlayerConfiguration.Logger.warning.args[ 0 ][ 1 ], "firebase not connected");
-      assert.isNull( RisePlayerConfiguration.Logger.warning.args[ 0 ][ 2 ] );
+      assert.deepEqual( RisePlayerConfiguration.Logger.warning.args[ 0 ][ 2 ], {
+        financialList: element.financialList,
+        symbol: ""
+      } );
 
       element._getInstruments.restore();
       setFirebaseConnectionStatus( true );
@@ -203,6 +209,13 @@
         instruments: [ inst1 ],
         data: realTimeData.table,
       } );
+
+      RisePlayerConfiguration.Logger.info.reset();
+      element._handleData( { detail: [ realTimeData ] } );
+
+      // should only log data-update event once
+      assert.isFalse( RisePlayerConfiguration.Logger.info.called );
+
     } );
 
     test( "should log 'invalid-symbol' warning event", () => {
@@ -212,6 +225,21 @@
       assert.deepEqual( RisePlayerConfiguration.Logger.warning.args[ 0 ][ 0 ], componentData );
       assert.equal( RisePlayerConfiguration.Logger.warning.args[ 0 ][ 1 ], "invalid-symbol");
       assert.equal( RisePlayerConfiguration.Logger.warning.args[ 0 ][ 2 ], "test" );
+    } );
+
+    test( "should log 'reset' info event", () => {
+      element._initialStart = false;
+
+      sinon.stub( element, "_getInstruments" );
+
+      element.symbol = "test";
+
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 2 ][ 0 ], componentData );
+      assert.equal( RisePlayerConfiguration.Logger.info.args[ 2 ][ 1 ], "reset");
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 2 ][ 2 ], {
+        financialList: element.financialList,
+        symbol: "test"
+      } );
     } );
   });
 </script>
