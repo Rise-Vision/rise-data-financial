@@ -341,7 +341,7 @@ class RiseDataFinancial extends PolymerElement {
     const symbols = instruments.map(({ symbol }) => symbol );
 
     if ( this.symbol ) {
-      if ( symbols.indexOf( this.symbol ) != -1 ) {
+      if ( symbols.includes( this.symbol )) {
         return this.symbol;
       } else {
         this._invalidSymbol = true;
