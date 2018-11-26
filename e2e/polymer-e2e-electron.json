@@ -1,0 +1,21 @@
+{
+  "entrypoint": "e2e/rise-data-financial-electron.html",
+  "sources": [ "e2e/**/*" ],
+  "extraDependencies": [
+    "node_modules/@polymer/polymer/**",
+    "node_modules/@webcomponents/webcomponentsjs/**"
+  ],
+  "builds": [
+    {
+      "name": "base",
+      "preset": "es5-bundled",
+      "addServiceWorker": false,
+      "html": { "minify": true },
+      "css": { "minify": true },
+      "js": { "minify": true },
+      "bundle": { "stripComments": true }
+    }
+  ],
+  "moduleResolution": "node",
+  "npm": true
+}

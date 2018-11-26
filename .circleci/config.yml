@@ -75,6 +75,33 @@ jobs:
           paths:
             - version-string
 
+  build-e2e-page:
+    parameters:
+      stage:
+        type: string
+    docker: *BUILDIMAGE
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - restore_cache:
+          key: node-cache-{{ checksum "package.json" }}
+      - run: echo build e2e page << parameters.stage >>
+      - run: |
+          VERSION=$(cat version-string/version)
+          sed "
+            s/__STAGE__/<< parameters.stage >>/;
+            s/__VERSION__/$VERSION/;
+            s/__PLAYER__/electron/;
+            s/__CONNECTION__/websocket/;
+          " e2e/rise-data-financial.html > e2e/rise-data-financial-electron.html
+      - run: cp e2e/polymer-e2e-electron.json polymer.json
+      - run: polymer build
+      - persist_to_workspace:
+          root: ./build
+          paths:
+            - base
+
   deploy-stage:
     docker: *GCSIMAGE
     steps:
@@ -150,6 +177,25 @@ workflows:
               only:
                 - /^(stage|staging)[/].*/
                 - master
+                - build/stable
+      - build-e2e-page:
+          stage: beta
+          name: build-e2e-page-beta
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master
+                - /^(stage|staging)[/].*/
+      - build-e2e-page:
+          stage: stable
+          name: build-e2e-page-stable
+          requires:
+            - build
+          filters:
+            branches:
+              only:
                 - build/stable
       - deploy-stage:
           requires:

@@ -1,0 +1,104 @@
+<!doctype html>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- import firebase from CDN, bundling into rise-data-financial not possible -->
+    <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-database.js"></script>
+
+    <script src="../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+    <script src="../node_modules/@webcomponents/webcomponentsjs/custom-elements-es5-adapter.js"></script>
+    <script type="module">
+      // this and the following block are needed at build time to force the creation of the shared bundle script
+      import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+    </script>
+    <script type="module">
+      import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+    </script>
+    <script src="https://widgets.risevision.com/__STAGE__/common/config-test.min.js"></script>
+    <script src="https://widgets.risevision.com/__STAGE__/common/common-template.min.js"></script>
+    <script src="https://widgets.risevision.com/staging/components/rise-data-financial/__VERSION__/rise-data-financial.js"></script>
+    <script>
+      if (document.domain.indexOf("localhost") === -1) {
+        try {
+          document.domain = "risevision.com";
+        } catch (err) {
+          // can't set document.domain, risevision.com not an accepted suffix of current document domain
+          console.log("document.domain can't be set", err);
+        }
+      }
+    </script>
+    <style>
+       h1 { font-size: 72px; }
+    </style>
+  </head>
+  <body>
+    <rise-data-financial
+      id="rise-data-financial-01"
+      financial-list = "-Kd1xh1DkzpmBeCdfLiB"
+      instrument-fields='["name", "lastPrice", "netChange", "percentChange", "accumulatedVolume"]'>
+    </rise-data-financial>
+
+    <h1 id="instruments"></h1>
+    <h1 id="data"></h1>
+
+    <script>
+      function configureComponents() {
+        const start = new CustomEvent( "start" ),
+          financial01 = document.querySelector('#rise-data-financial-01');
+
+        financial01.addEventListener( "instruments-received", ( evt ) => {
+          console.log("instruments received", evt.detail);
+          document.querySelector('#instruments').innerHTML = "INSTRUMENTS";
+
+          console.log("dispatching 'start' event");
+          financial01.dispatchEvent(start);
+        } );
+
+        financial01.addEventListener( "instruments-unavailable", () => {
+          console.log("instruments unavailable");
+        } );
+
+        financial01.addEventListener( "data-update", ( evt ) => {
+          console.log( "data update", evt.detail );
+          document.querySelector('#data').innerHTML = "DATA";
+        } );
+
+        financial01.addEventListener( "data-error", ( evt ) => {
+          console.log( "data error", evt.detail );
+        } );
+
+        financial01.addEventListener( "request-error", ( evt ) => {
+          console.log( "request error", evt.detail );
+        } );
+      }
+
+      window.addEventListener( "rise-components-ready", configureComponents );
+
+      // Demonstrating how to handle no connection to local messaging via listening for event
+      // Note: the connection can also be checked via RisePlayerConfiguration.LocalMessaging.isConnected()
+      window.addEventListener( "rise-local-messaging-connection", event => {
+        if ( !event.detail.isConnected ) {
+          console.log( "no connection to local messaging");
+        }
+      } );
+    </script>
+    <script>
+      // electron / websocket or chromeos / window
+      RisePlayerConfiguration.configure({
+        displayId: "Y8SAH3CQ6NMP",
+        companyId: "7fa5ee92-7deb-450b-a8d5-e5ed648c575f",
+        playerType: "__STAGE__",
+        playerVersion: "TEST_VERSION",
+        os: "TEST_OS"
+      }, {
+        player: "__PLAYER__",
+        connectionType: "__CONNECTION__",
+        detail: { serverUrl: "http://localhost:8080" }
+      });
+    </script>
+  </body>
+</html>
