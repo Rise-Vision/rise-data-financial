@@ -54,6 +54,8 @@ jobs:
   gcloud-setup:
     docker: &GCSIMAGE
       - image: jenkinsrise/cci-v2-launcher-electron:0.0.6
+        environment:
+          WIDGETS_BASE: gs://widgets.risevision.com
     steps:
       - run: mkdir -p ~/.ssh
       - run: ssh-keyscan -H github.com >> ~/.ssh/known_hosts
@@ -114,11 +116,30 @@ jobs:
       - run: cp -r gcloud ~/.config
       - run: npm install common-component
       - run: |
-          GS_BASE=gs://widgets.risevision.com
           VERSION=$(cat version-string/version)
-          TARGET=$GS_BASE/staging/components/$COMPONENT_NAME/$VERSION/
+          TARGET=$WIDGETS_BASE/staging/components/$COMPONENT_NAME/$VERSION/
           echo Deploying version $VERSION to $COMPONENT_NAME
           node_modules/common-component/deploy-gcs.sh $COMPONENT_NAME $TARGET
+
+  deploy-e2e-page:
+    parameters:
+      stage:
+        type: string
+    docker: *GCSIMAGE
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - restore_cache:
+          key: node-cache-{{ checksum "package.json" }}
+      - run: mkdir -p ~/.config
+      - run: cp -r gcloud ~/.config
+      - run: |
+          TARGET=$WIDGETS_BASE/<< parameters.stage >>/e2e/$COMPONENT_NAME/electron
+          echo Deploying << parameters.stage >> electron e2e page for $COMPONENT_NAME
+          gsutil rsync -d -r base $TARGET
+          gsutil -m setmeta -r -h "Cache-Control:private, max-age=0" $TARGET
+          gsutil acl -r ch -u AllUsers:R $TARGET
 
   deploy-production:
     parameters:
@@ -135,8 +156,7 @@ jobs:
       - run: cp -r gcloud ~/.config
       - run: npm install common-component
       - run: |
-          GS_BASE=gs://widgets.risevision.com
-          TARGET=$GS_BASE/<< parameters.stage >>/components/$COMPONENT_NAME/
+          TARGET=$WIDGETS_BASE/<< parameters.stage >>/components/$COMPONENT_NAME/
           echo Deploying << parameters.stage >> version of $COMPONENT_NAME
           node_modules/common-component/deploy-gcs.sh $COMPONENT_NAME $TARGET
 
@@ -206,6 +226,27 @@ workflows:
               only:
                 - /^(stage|staging)[/].*/
                 - master
+                - build/stable
+      - deploy-e2e-page:
+          stage: beta
+          name: deploy-e2e-page-beta
+          requires:
+            - gcloud-setup
+            - build-e2e-page-beta
+          filters:
+            branches:
+              only:
+                - master
+                - /^(stage|staging)[/].*/
+      - deploy-e2e-page:
+          stage: stable
+          name: deploy-e2e-page-stable
+          requires:
+            - gcloud-setup
+            - build-e2e-page-stable
+          filters:
+            branches:
+              only:
                 - build/stable
       - deploy-production:
           stage: beta
