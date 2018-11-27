@@ -155,25 +155,30 @@ jobs:
           PLAYER_CONFIG: /home/circleci/rvplayer/RiseDisplayNetworkII.ini
     steps:
       - run: git clone https://github.com/Rise-Vision/rise-launcher-electron-e2e.git
-      - run: |
-          cd rise-launcher-electron-e2e
-          npm install
-      - run: mkdir ~/rvplayer
-      - run: echo "displayid=<< parameters.displayId >>" > $PLAYER_CONFIG
-      - run: echo proxy= >> $PLAYER_CONFIG
       - run:
-          name: prepare the test
+          working_directory: rise-launcher-electron-e2e
+          command: npm install
+      - run: mkdir ~/rvplayer
+      - run:
+          name: setup rise player configuration file
+          command: |
+            echo "displayid=<< parameters.displayId >>" > $PLAYER_CONFIG
+            echo proxy= >> $PLAYER_CONFIG
+      - run:
+          name: download expected screenshot
+          working_directory: rise-launcher-electron-e2e
           command: |
             EXPECTED_SNAPSHOT_URL=$SCREENSHOTS_BASE/<< parameters.displayId >>.jpg
-            cd rise-launcher-electron-e2e
             curl $EXPECTED_SNAPSHOT_URL > expected-screenshot.jpg
-            curl $INSTALLER_BASE<< parameters.installerPath >>installer-lnx-64.sh > installer.sh
-            chmod +x installer.sh
+      - run:
+          name: download Rise Player Electron
+          working_directory: rise-launcher-electron-e2e
+          command: curl $INSTALLER_BASE<< parameters.installerPath >>installer-lnx-64.sh > installer.sh
+      - run: chmod +x ./rise-launcher-electron-e2e/installer.sh
       - run:
           name: run the test
-          command: |
-            cd rise-launcher-electron-e2e
-            node test-display-runner-using-downloaded-installer.js << parameters.displayId >> 20
+          working_directory: rise-launcher-electron-e2e
+          command: node test-display-runner-using-downloaded-installer.js << parameters.displayId >> 20
       - run: mkdir output
       - run: mv ./rise-launcher-electron-e2e/*screenshot.jpg output
       - store_artifacts:
