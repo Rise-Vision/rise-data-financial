@@ -124,11 +124,11 @@ class RiseDataFinancial extends PolymerElement {
   ready() {
     super.ready();
 
-    const init = () => this._init();
-
     if ( RisePlayerConfiguration.isConfigured()) {
-      init();
+      this._init();
     } else {
+      const init = () => this._init();
+
       window.addEventListener( "rise-components-ready", init, { once: true });
     }
   }
