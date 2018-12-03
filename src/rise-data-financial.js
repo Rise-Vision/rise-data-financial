@@ -444,6 +444,11 @@ class RiseDataFinancial extends PolymerElement {
         url = this._getSerializedUrl( financialServerConfig.historicalURL, params );
       }
 
+      this._log( "info", "request-financial-data", {
+        callbackName: callbackValue,
+        libraryUrl: url
+      });
+
       financial.callbackName = callbackValue;
       financial.libraryUrl = url;
     }
