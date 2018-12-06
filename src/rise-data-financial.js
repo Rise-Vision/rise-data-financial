@@ -119,6 +119,7 @@ class RiseDataFinancial extends PolymerElement {
     this._invalidSymbol = false;
     this._getDataPending = false;
     this._logDataUpdate = true;
+    this._financialRequestRetryCount = 0;
   }
 
   ready() {
@@ -323,10 +324,30 @@ class RiseDataFinancial extends PolymerElement {
   }
 
   _handleError() {
-    if ( !this._initialStart ) {
-      this._log( "error", RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
-      this._sendFinancialEvent( RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
-      this._refresh();
+    if ( !this._initialStart && this.financialErrorMessage ) {
+      if ( this._financialRequestRetryCount < 5 ) {
+        this._financialRequestRetryCount += 1;
+
+        // need to reset to null otherwise financialErrorMessage value may not change from next request failure
+        // and therefore observer won't trigger this handler
+        this.financialErrorMessage = null;
+
+        timeOut.run(() => {
+          this._getData(
+            {
+              type: this.type,
+              duration: this.duration
+            },
+            this._instruments,
+            this.instrumentFields
+          );
+        }, 1000 );
+      } else {
+        this._financialRequestRetryCount = 0;
+        this._log( "error", RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
+        this._sendFinancialEvent( RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
+        this._refresh();
+      }
     }
   }
 
@@ -336,6 +357,8 @@ class RiseDataFinancial extends PolymerElement {
     }
 
     const detail = event.detail [ 0 ];
+
+    this._financialRequestRetryCount = 0;
 
     if ( detail.hasOwnProperty( "errors" ) && detail.errors.length === 1 ) {
       this._log( "error", RiseDataFinancial.EVENT_DATA_ERROR, { error: detail.errors[ 0 ] });
