@@ -171,19 +171,31 @@
       }, 500);
     });
 
-    test( "should log 'request-error' error event", () => {
+    test( "should log 'request-error' error event after 5 failed retries", () => {
       element._initialStart = false;
-      element.financialErrorMessage = "test error";
 
       sinon.stub( element, "_refresh" );
+      sinon.stub( element, "_getData" );
 
-      element._handleError();
+      // force value for observed financialErrorMessage property to emulate failed financial request
+      element.financialErrorMessage = "test error";
+      // account for 1 second delay
+      clock.tick( 1000 );
+
+      assert.equal( RisePlayerConfiguration.Logger.error.callCount, 0 );
+
+      // emulate further retry failures
+      for ( let i = 0; i < 5; i += 1 ) {
+        element.financialErrorMessage = "test error";
+        clock.tick( 1000 );
+      }
 
       assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 0 ], componentData );
       assert.equal( RisePlayerConfiguration.Logger.error.args[ 0 ][ 1 ], "request-error");
       assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 2 ], { message: "test error" } );
 
       element._refresh.restore();
+      element._getData.restore();
     } );
 
     test( "should log 'data-error' error event", () => {
