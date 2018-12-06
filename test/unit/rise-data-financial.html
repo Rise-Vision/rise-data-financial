@@ -592,18 +592,54 @@
 
       setup(() => element._initialStart = false);
 
-      test( "should send 'request-error' event with message provided from iron-jsonp-library", ( done ) => {
+      test( "should send 'request-error' event with message after 5 failed retries", ( done ) => {
         const listener = ( evt ) => {
           assert.deepEqual( evt.detail, {
             message: "Test error message"
           } );
 
+          // retry count is reset
+          assert.equal( element._financialRequestRetryCount, 0 );
+
           element.removeEventListener( "request-error", listener );
+          element._getData.restore();
+
           done();
         };
 
+        const stub = sinon.stub( element, "_getData" );
+
         element.addEventListener( "request-error", listener );
+
+        // force value for observed financialErrorMessage property to emulate failed financial request
         element.financialErrorMessage = "Test error message";
+
+        // account for 1 second delay
+        clock.tick( 1000 );
+
+        assert.equal( stub.callCount, 1 );
+        assert.isTrue( stub.calledWith({
+          duration: "1M",
+          type: "realtime"
+        }, element._instruments, [ "lastPrice", "netChange" ]) );
+
+        element.financialErrorMessage = "Test error message";
+
+        // account for 1 second delay
+        clock.tick( 1000 );
+
+        assert.equal( stub.callCount, 2 );
+
+        // emulate further retry failures
+        for ( let i = 0; i < 3; i += 1 ) {
+          element.financialErrorMessage = "Test error message";
+          clock.tick( 1000 );
+        }
+
+        assert.equal( stub.callCount, 5 );
+
+        element.financialErrorMessage = "Test error message";
+        clock.tick( 1000 );
       } );
 
     } );
