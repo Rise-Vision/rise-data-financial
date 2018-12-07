@@ -78,9 +78,23 @@
 
       test( "should start refresh timer on failed JSON request", () => {
         element._initialStart = false;
-        element._handleError();
+
+        sinon.stub( element, "_getData" );
+
+        // force value for observed financialErrorMessage property to emulate failed financial request
+        element.financialErrorMessage = "test error";
+        // account for 1 second delay
+        clock.tick( 1000 );
+
+        // emulate further retry failures
+        for ( let i = 0; i < 5; i += 1 ) {
+          element.financialErrorMessage = "test error";
+          clock.tick( 1000 );
+        }
 
         assert( spy.calledOnce );
+
+        element._getData.restore();
       } );
 
     } );
