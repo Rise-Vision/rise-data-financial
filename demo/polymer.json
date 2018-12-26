@@ -1,5 +1,5 @@
 {
-  "entrypoint": "src/rise-data-financial-chromeos.html",
+  "entrypoint": "src/rise-data-financial.html",
   "extraDependencies": [
     "node_modules/@polymer/polymer/**",
     "node_modules/@webcomponents/webcomponentsjs/**"
