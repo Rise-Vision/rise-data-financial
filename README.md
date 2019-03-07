@@ -109,6 +109,18 @@ _data_ is an object with _cols_ and _rows_ properties, where _cols_ is an array 
 
 _instruments_ is an object that provides details about every instrument found in the financial list.
 
+### Attributes
+
+This component receives the following list of attributes:
+
+- **category**: "bonds" / "commodities" / "currencies" / "market statistics" / "stocks" / "world indexes". Required if the component is editable.
+- **symbols** ( string ): List of symbols separated by pipe symbol. Required if the component is editable. Example: "CADUSD=X|MXNUSD=X|USDEUR=X".
+- **financial-list** ( string / required ): Id of the financial list in Financial Selector ( won't be required once the component fully supports the symbols attribute ).
+- **instrument-fields** ( array of strings / optional ): if not provided, all fields will be retrieved. Example: ```["instrument", "name", "lastPrice"]```
+- **type**: 'realtime' ( default ) / 'historical'. See 'Historical Data' section above.
+- **duration**: Day / Week / 1M ( default ) / 3M / 6M / 1Y / 5Y. Only used when type == 'historical'. See 'Historical Data' section above.
+- **symbol** ( string ): Only used when type == 'historical'. indicates which instrument from the list of historical data needs to be retrieved. Example: 'AAPL.0'.
+
 ### Events
 
 The component sends the following events:
