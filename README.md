@@ -109,10 +109,41 @@ _data_ is an object with _cols_ and _rows_ properties, where _cols_ is an array 
 
 _instruments_ is an object that provides details about every instrument found in the financial list.
 
+### Labels
+
+The component may define a 'label' attribute that defines the text that will appear for this instance in the template editor.
+
+This attribute holds a key pointing to a localized text defined in [common-header](https://github.com/Rise-Vision/common-header/tree/master/src/locales/locales_json/en), for example:
+
+```
+  <rise-data-financial
+    id="financial01"
+    category="currencies"
+    label="template.financial.currencies"
+    symbols="CADUSD=X|MXNUSD=X|USDEUR=X"
+    instrument-fields='["instrument", "name", "lastPrice", "netChange"]'>
+  </rise-data-financial>
+```
+
+If it's not set, the label for the component defaults to 'template.rise-data-financial' ( this key is already defined ). Any new label to be used should be defined in the common-header project, ideally under the "financial" section of the [template.json](https://github.com/Rise-Vision/common-header/blob/master/src/locales/locales_json/en/template.json) file.
+
+Also, the [rise-vision-apps](https://github.com/Rise-Vision/rise-vision-apps/blob/master/bower.json) project should be updated to point to the version with that label.
+
+The following labels are already defined:
+
+- **template.financial.bonds**
+- **template.financial.commodities**
+- **template.financial.currencies**
+- **template.financial.market-statistics**
+- **template.financial.stocks**
+- **template.financial.world-indexes**
+
 ### Attributes
 
 This component receives the following list of attributes:
 
+- **id**: ( string / required ): Unique HTML id with format 'rise-data-financial-<NAME_OR_NUMBER>'.
+- **label**: ( string ): An optional label key for the text that will appear in the template editor. See 'Labels' section above.
 - **category**: "bonds" / "commodities" / "currencies" / "market statistics" / "stocks" / "world indexes". Required if the component is editable.
 - **symbols** ( string ): List of symbols separated by pipe symbol. Required if the component is editable. Example: "CADUSD=X|MXNUSD=X|USDEUR=X".
 - **financial-list** ( string / required ): Id of the financial list in Financial Selector ( won't be required once the component fully supports the symbols attribute ).
