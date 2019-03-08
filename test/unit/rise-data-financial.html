@@ -775,6 +775,117 @@
 
     } );
 
+    suite( "_checkFinancialErrors", () => {
+
+      var sampleData;
+
+      setup( () => {
+        sampleData = {
+        	"instruments": [{
+        		"$id": "%2EAV%2EN",
+        		"category": "Market Statistics",
+        		"name": "NYSE MOST ACTIVES",
+        		"symbol": ".AV.N"
+        	}],
+        	"data": {
+        		"cols": [],
+        		"rows": [{
+        			"c": [{
+        				"v": ""
+        			}, {
+        				"v": 0
+        			}, {
+        				"v": 0
+        			}, {
+        				"v": 0
+        			}, {
+        				"v": 0
+        			}]
+        		}, {
+        			"c": [{
+        				"v": ""
+        			}, {
+        				"v": 0
+        			}, {
+        				"v": 0
+        			}, {
+        				"v": 0
+        			}, {
+        				"v": 0
+        			}]
+        		}]
+        	}
+        }
+      } );
+
+      test( "should not log if no status are present in the data", () => {
+        const stub = sinon.stub( element, "_log" );
+
+        element._checkFinancialErrors( sampleData );
+
+        assert.isFalse( stub.called );
+        assert.deepEqual( element._eventsAlreadyLogged, [] );
+
+        stub.restore();
+      } );
+
+      test( "should log N/P error if it's present in the data", () => {
+        const stub = sinon.stub( element, "_log" );
+
+        sampleData.data.rows[0].c[0].v = "N/P";
+
+        element._checkFinancialErrors( sampleData );
+
+        assert.isTrue( stub.calledWith(
+          "error",
+          "Rise is not permissioned to show the instrument .AV.N"
+        ));
+
+        assert.deepEqual( element._eventsAlreadyLogged, ["N/P"] );
+
+        stub.restore();
+      } );
+
+      test( "should log N/P and S/P error if both are present in the data", () => {
+        const stub = sinon.stub( element, "_log" );
+
+        sampleData.data.rows[0].c[0].v = "N/P";
+        sampleData.data.rows[1].c[0].v = "S/P";
+
+        element._checkFinancialErrors( sampleData );
+
+        assert.isTrue( stub.calledWith(
+          "error",
+          "Rise is not permissioned to show the instrument .AV.N"
+        ));
+        assert.isTrue( stub.calledWith(
+          "error",
+          "Display is not permissioned to show the instrument .AV.N"
+        ));
+
+        assert.deepEqual( element._eventsAlreadyLogged, ["N/P", "S/P"] );
+
+        stub.restore();
+      } );
+
+      test( "should log errors if they were already logged", () => {
+        const stub = sinon.stub( element, "_log" );
+
+        sampleData.data.rows[0].c[0].v = "N/P";
+        sampleData.data.rows[1].c[0].v = "S/P";
+
+        element._eventsAlreadyLogged = ["N/P", "S/P"];
+
+        element._checkFinancialErrors( sampleData );
+
+        assert.isFalse( stub.called );
+        assert.deepEqual( element._eventsAlreadyLogged, ["N/P", "S/P"] );
+
+        stub.restore();
+      } );
+
+    } );
+
   });
 </script>
 
