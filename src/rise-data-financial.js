@@ -395,6 +395,8 @@ class RiseDataFinancial extends PolymerElement {
         this._log( "info", RiseDataFinancial.EVENT_DATA_UPDATE, data );
       }
 
+      this._checkFinancialErrors( data );
+
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_UPDATE, data );
     }
 
@@ -404,11 +406,20 @@ class RiseDataFinancial extends PolymerElement {
   _checkFinancialErrors( data ) {
     const symbols = data.instruments.map(({ symbol }) => symbol ).join( "|" );
 
-    Object.keys( RiseDataFinancial.ERROR_EVENTS ).forEach( status => {
-      console.log( symbols );
-      console.log( status );
-      console.log( RiseDataFinancial.ERROR_EVENTS[ status ]);
-    });
+    Object.keys( RiseDataFinancial.ERROR_EVENTS )
+      .filter( status => !this._eventsAlreadyLogged.includes( status ))
+      .forEach( status => {
+        if ( data.data && data.data.rows && data.data.rows.some( row =>
+          row.c && row.c.some( cell => cell.v === status )
+        )) {
+          const errorMessage = RiseDataFinancial.ERROR_EVENTS[ status ];
+
+          this._log( "error", `${ errorMessage } ${ symbols }` );
+
+          // due to refresh every 60 seconds, prevent logging same error event to BQ every time
+          this._eventsAlreadyLogged.push( status );
+        }
+      });
   }
 
   _getSymbols( instruments ) {
