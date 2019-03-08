@@ -108,6 +108,14 @@ class RiseDataFinancial extends PolymerElement {
     return "invalid-symbol";
   }
 
+  static get ERROR_EVENTS() {
+    return {
+      "N/P": "Rise is not permissioned to show the instrument",
+      "N/A": "Instrument is unavailable, invalid or unknown",
+      "S/P": "Display is not permissioned to show the instrument"
+    };
+  }
+
   constructor() {
     super();
 
@@ -120,6 +128,7 @@ class RiseDataFinancial extends PolymerElement {
     this._getDataPending = false;
     this._logDataUpdate = true;
     this._financialRequestRetryCount = 0;
+    this._eventsAlreadyLogged = [];
   }
 
   ready() {
@@ -390,6 +399,16 @@ class RiseDataFinancial extends PolymerElement {
     }
 
     this._refresh();
+  }
+
+  _checkFinancialErrors( data ) {
+    const symbols = data.instruments.map(({ symbol }) => symbol ).join( "|" );
+
+    Object.keys( RiseDataFinancial.ERROR_EVENTS ).forEach( status => {
+      console.log( symbols );
+      console.log( status );
+      console.log( RiseDataFinancial.ERROR_EVENTS[ status ]);
+    });
   }
 
   _getSymbols( instruments ) {
