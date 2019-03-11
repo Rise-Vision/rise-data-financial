@@ -7,7 +7,6 @@
 
   <script src="../../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
   <script src="../../node_modules/wct-browser-legacy/browser.js"></script>
-  <script src="../mocks/firebase.js"></script>
   <script type="text/javascript">
     RisePlayerConfiguration = {
       isConfigured: () => true
@@ -158,23 +157,8 @@
     } );
 
     suite( "_getInstruments", () => {
-      let spy;
 
-      setup( () => {
-        spy = sinon.stub( element, "_handleInstruments" );
-      } );
-
-      teardown( () => {
-        spy.restore();
-      } );
-
-      test( "should trigger _handleInstruments() to be executed upon instruments received", () => {
-        element._getInstruments();
-
-        assert( spy.calledOnce );
-      } );
-
-      test( "should get instruments from local storage if firebase not connected", (done) => {
+      test( "should get instruments from local storage", (done) => {
         clock.restore();
 
         sinon.stub(element, "_getInstrumentsFromLocalStorage", ()=> {
@@ -183,7 +167,6 @@
 
         element._instrumentsReceived = false;
         element._instruments = undefined;
-        element._firebaseConnected = false;
 
         element._getInstruments();
 
@@ -191,7 +174,6 @@
           assert.isTrue( element._instrumentsReceived );
           assert.deepEqual( element._instruments, instruments );
 
-          element._firebaseConnected = true;
           element._getInstrumentsFromLocalStorage.restore();
 
           clock = sinon.useFakeTimers();
@@ -200,10 +182,9 @@
         }, 500);
       } );
 
-      test( "should send 'instruments-unavailable' event if firebase not connected and localStorage empty", ( done ) => {
+      test( "should send 'instruments-unavailable' event if localStorage empty", ( done ) => {
         let listener = () => {
           element._getInstrumentsFromLocalStorage.restore();
-          element._firebaseConnected = true;
           element._instrumentsReceived = true;
           element.removeEventListener( "instruments-unavailable", listener );
           done();
@@ -214,69 +195,9 @@
         } );
 
         element._instrumentsReceived = false;
-        element._firebaseConnected = false;
 
         element.addEventListener( "instruments-unavailable", listener );
         element._getInstruments();
-      } );
-
-      test( "should not trigger _handleInstruments() if no financialList attribute", () => {
-        element.financialList = "";
-        element._getInstruments();
-
-        assert.equal( spy.callCount, 0 );
-
-        element.financialList = "Stocks";
-      } );
-
-      test( "should not trigger _handleInstruments() if firebase connection status not determined", () => {
-        element._firebaseConnected = undefined;
-        element._getInstruments();
-
-        assert.equal( spy.callCount, 0 );
-
-        element._firebaseConnected = true;
-      } );
-
-    } );
-
-    suite( "_handleInstruments", () => {
-
-      test( "should set _instruments and send 'instruments-received' event", ( done ) => {
-        let listener = () => {
-          element.removeEventListener( "instruments-received", listener );
-
-          assert.deepEqual( element._instruments, [ inst1 ] );
-
-          done();
-        };
-
-        element.addEventListener( "instruments-received", listener );
-
-        element._handleInstruments( {
-          val: () => {
-            return instrument;
-          }
-        } );
-      } );
-
-      test( "should set _instruments to empty array and send 'instruments-received' event", ( done ) => {
-        let listener = () => {
-          element.removeEventListener( "instruments-received", listener );
-
-          assert.deepEqual( element._instruments, [] );
-
-          done();
-        };
-
-        element.addEventListener( "instruments-received", listener );
-
-        element._handleInstruments( {
-          val: () => {
-            return null;
-          }
-        } );
-
       } );
 
     } );
@@ -667,49 +588,6 @@
         assert.isTrue( instrumentsStub.calledOnce );
 
         _resetStub = sinon.stub( element, "_reset" );
-      } );
-
-    } );
-
-    suite( "_handleConnected", () => {
-      let stub;
-
-      setup( () => {
-        stub = sinon.stub( element, "_getInstruments" );
-      } );
-
-      teardown( () => {
-        stub.restore();
-        setFirebaseConnectionStatus( true );
-      } );
-
-      test( "should set firebase connected status and call '_getInstruments()' when still needing instruments", () => {
-        element._instrumentsReceived = false;
-        setFirebaseConnectionStatus( true );
-
-        assert.isTrue( stub.calledOnce );
-        assert.isTrue( element._firebaseConnected );
-
-        element._instrumentsReceived = true;
-      } );
-
-      test( "should not call '_getInstruments()' if instruments already received", () => {
-        setFirebaseConnectionStatus( true );
-
-        assert.equal( stub.callCount, 0 );
-        assert.isTrue( element._firebaseConnected );
-      } );
-
-      test( "should call '_getInstruments()' if no connection within 2 seconds and still needing instruments", () => {
-        element._instrumentsReceived = false;
-        setFirebaseConnectionStatus( false );
-
-        clock.tick( 2000 );
-
-        assert.isTrue( stub.calledOnce );
-        assert.isFalse( element._firebaseConnected );
-
-        element._firebaseConnected = true;
       } );
 
     } );

@@ -7,7 +7,6 @@
 
   <script src="../../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
   <script src="../../node_modules/wct-browser-legacy/browser.js"></script>
-  <script src="../mocks/firebase.js"></script>
   <script type="text/javascript">
     RisePlayerConfiguration = {
       isConfigured: () => true
@@ -71,6 +70,13 @@
 
       test( "should start refresh timer on successful JSONP response", () => {
         element._initialStart = false;
+        element._instruments = [{
+          category: "Stocks",
+          index: 0,
+          name: "Alcoa",
+          symbol: "AA.N",
+          $id: "AA?N"
+        }];
         element._handleData( { detail: [ realTimeData ] } );
 
         assert( spy.calledOnce );

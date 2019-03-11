@@ -3,7 +3,6 @@
 import { PolymerElement, html } from "@polymer/polymer";
 import { timeOut } from "@polymer/polymer/lib/utils/async.js";
 import { Debouncer } from "@polymer/polymer/lib/utils/debounce.js";
-import { database } from "./rise-data-financial-config.js";
 import { financialServerConfig } from "./rise-data-financial-config.js";
 import { version } from "./rise-data-financial-version.js";
 import "@polymer/iron-jsonp-library/iron-jsonp-library.js";
@@ -119,9 +118,7 @@ class RiseDataFinancial extends PolymerElement {
   constructor() {
     super();
 
-    this._firebaseConnected = undefined;
     this._instrumentsReceived = false;
-    this._connectDebounceJob = null;
     this._refreshDebounceJob = null;
     this._initialStart = true;
     this._invalidSymbol = false;
@@ -154,10 +151,6 @@ class RiseDataFinancial extends PolymerElement {
   connectedCallback() {
     super.connectedCallback();
 
-    this._connectedRef = database.ref( ".info/connected" );
-    this._handleConnected = this._handleConnected.bind( this );
-    this._connectedRef.on( "value", this._handleConnected );
-
     this.addEventListener( RiseDataFinancial.EVENT_START, this._handleStart );
 
     this._handleData = this._handleData.bind( this );
@@ -166,9 +159,6 @@ class RiseDataFinancial extends PolymerElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-
-    this._connectedRef.off( "value", this._handleConnected );
-    this._instrumentsRef.off( "value", this._handleInstruments );
 
     this.removeEventListener( RiseDataFinancial.EVENT_START, this._handleStart );
     this.$.financial.removeEventListener( "financial-data", this._handleData );
@@ -210,29 +200,22 @@ class RiseDataFinancial extends PolymerElement {
   }
 
   _getInstruments() {
-    if ( !this.financialList || this._firebaseConnected === undefined ) {
+    if ( !this.financialList ) {
       return;
     }
 
-    if ( this._firebaseConnected ) {
-      this._instrumentsRef = database.ref( `lists/${ this.financialList }/instruments` );
-      this._handleInstruments = this._handleInstruments.bind( this );
+    this._getInstrumentsFromLocalStorage( `risedatafinancial_${ this.financialList }` )
+      .then(( instruments ) => {
+        this._instrumentsReceived = true;
+        this._instruments = instruments;
 
-      this._instrumentsRef.on( "value", this._handleInstruments );
-    } else {
-      this._getInstrumentsFromLocalStorage( `risedatafinancial_${ this.financialList }` )
-        .then(( instruments ) => {
-          this._instrumentsReceived = true;
-          this._instruments = instruments;
-
-          this._log( "info", RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, { instruments: this._instruments, from: "localStorage" });
-          this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, this._instruments );
-        })
-        .catch(() => {
-          this._log( "error", RiseDataFinancial.EVENT_INSTRUMENTS_UNAVAILABLE );
-          this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_UNAVAILABLE );
-        });
-    }
+        this._log( "info", RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, { instruments: this._instruments, from: "localStorage" });
+        this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, this._instruments );
+      })
+      .catch(() => {
+        this._log( "error", RiseDataFinancial.EVENT_INSTRUMENTS_UNAVAILABLE );
+        this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_UNAVAILABLE );
+      });
   }
 
   _saveInstruments( instruments ) {
@@ -241,45 +224,6 @@ class RiseDataFinancial extends PolymerElement {
     } catch ( e ) {
       console.warn( e.message );
     }
-  }
-
-  _handleConnected( snapshot ) {
-    if ( !this._instrumentsReceived ) {
-      if ( !snapshot.val()) {
-        // account for multiple "false" values being initially returned even though network status is online
-        if ( !this._connectDebounceJob || !this._connectDebounceJob.isActive()) {
-          this._connectDebounceJob = Debouncer.debounce( this._connectDebounceJob, timeOut.after( 2000 ), () => {
-            this._firebaseConnected = false;
-            this._log( "warning", "firebase not connected", {
-              financialList: this.financialList,
-              symbol: this.symbol
-            });
-            this._getInstruments();
-          });
-        }
-      } else {
-        this._connectDebounceJob && this._connectDebounceJob.cancel();
-        this._firebaseConnected = true;
-
-        this._log( "info", "firebase connected", {
-          financialList: this.financialList,
-          symbol: this.symbol
-        });
-
-        this._getInstruments();
-      }
-    }
-  }
-
-  _handleInstruments( snapshot ) {
-    const instruments = snapshot.val() || {};
-
-    this._instruments = this._sortInstruments( instruments );
-    this._instrumentsReceived = true;
-    this._saveInstruments( this._instruments );
-
-    this._log( "info", RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, { instruments: this._instruments, from: "firebase" });
-    this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, this._instruments );
   }
 
   _reset() {
@@ -303,20 +247,6 @@ class RiseDataFinancial extends PolymerElement {
     });
 
     this.dispatchEvent( event );
-  }
-
-  _sortInstruments( instrumentMap ) {
-    const list = Object.keys( instrumentMap )
-      .map(( $id ) => Object.assign({ $id }, instrumentMap[ $id ]))
-      .sort(( i1, i2 ) => this._numberify( i1.order ) - this._numberify( i2.order ));
-
-    return list;
-  }
-
-  _numberify( x ) {
-    // if number is not defined or is invalid, assign the infinity
-    // value to make sure the item stay at the bottom
-    return Number.isInteger( x ) ? x : Number.POSITIVE_INFINITY;
   }
 
   _isValidType( type ) {
