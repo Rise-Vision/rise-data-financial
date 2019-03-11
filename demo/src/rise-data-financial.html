@@ -49,7 +49,7 @@
         financial01 = document.querySelector('#rise-data-financial-01');
 
       financial01.addEventListener( "instruments-received", ( evt ) => {
-        console.log("instruments received", evt.detail);
+        console.log( "instruments received", JSON.stringify(evt.detail) );
 
         console.log("dispatching 'start' event");
         financial01.dispatchEvent(start);
@@ -60,7 +60,7 @@
       } );
 
       financial01.addEventListener( "data-update", ( evt ) => {
-        console.log( "data update", evt.detail );
+        console.log( "data update", JSON.stringify(evt.detail) );
       } );
 
       financial01.addEventListener( "data-error", ( evt ) => {

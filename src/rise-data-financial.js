@@ -108,6 +108,14 @@ class RiseDataFinancial extends PolymerElement {
     return "invalid-symbol";
   }
 
+  static get ERROR_EVENTS() {
+    return {
+      "N/P": "Rise is not permissioned to show the instrument",
+      "N/A": "Instrument is unavailable, invalid or unknown",
+      "S/P": "Display is not permissioned to show the instrument"
+    };
+  }
+
   constructor() {
     super();
 
@@ -120,6 +128,7 @@ class RiseDataFinancial extends PolymerElement {
     this._getDataPending = false;
     this._logDataUpdate = true;
     this._financialRequestRetryCount = 0;
+    this._eventsAlreadyLogged = [];
   }
 
   ready() {
@@ -386,10 +395,31 @@ class RiseDataFinancial extends PolymerElement {
         this._log( "info", RiseDataFinancial.EVENT_DATA_UPDATE, data );
       }
 
+      this._checkFinancialErrors( data );
+
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_UPDATE, data );
     }
 
     this._refresh();
+  }
+
+  _checkFinancialErrors( data ) {
+    const symbols = data.instruments.map(({ symbol }) => symbol ).join( "|" );
+
+    Object.keys( RiseDataFinancial.ERROR_EVENTS )
+      .filter( status => !this._eventsAlreadyLogged.includes( status ))
+      .forEach( status => {
+        if ( data.data && data.data.rows && data.data.rows.some( row =>
+          row.c && row.c.some( cell => cell.v === status )
+        )) {
+          const errorMessage = RiseDataFinancial.ERROR_EVENTS[ status ];
+
+          this._log( "error", `${ errorMessage } ${ symbols }` );
+
+          // due to refresh every 60 seconds, prevent logging same error event to BQ every time
+          this._eventsAlreadyLogged.push( status );
+        }
+      });
   }
 
   _getSymbols( instruments ) {
