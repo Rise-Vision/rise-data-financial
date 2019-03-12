@@ -5,10 +5,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- import firebase from CDN, bundling into rise-data-financial not possible -->
-  <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-database.js"></script>
-
   <script src="https://widgets.risevision.com/scripts/primus-local-messaging.js"></script>
 
   <script src="../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
@@ -39,8 +35,8 @@
 
   <rise-data-financial
     id="rise-data-financial-01"
-    financial-list = "-Kd1xh1DkzpmBeCdfLiB"
-    instrument-fields='["name", "lastPrice", "netChange", "percentChange", "accumulatedVolume"]'>
+    symbols="C.N|IBM.N|KO|WMT.N"
+    instrument-fields='["name", "lastPrice", "netChange", "percentChange"]'>
   </rise-data-financial>
 
   <script>
