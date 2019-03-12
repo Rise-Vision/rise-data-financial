@@ -151,7 +151,8 @@
       assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 0 ], componentData );
       assert.equal( RisePlayerConfiguration.Logger.info.args[ 0 ][ 1 ], "reset");
       assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 2 ], {
-        symbols: ".abc|.def"
+        symbols: ".abc|.def",
+        instrumentFields: ["lastPrice", "netChange"]
       } );
     } );
   });

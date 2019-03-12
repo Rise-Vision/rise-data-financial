@@ -98,12 +98,20 @@
 
     } );
 
-    suite( "financial list id change", () => {
+    suite( "attribute value change", () => {
 
-      test( "should call _reset()", () => {
+      test( "should call _reset() from symbols change", () => {
         let changedStub = sinon.stub( element, "_reset" );
 
         element.setAttribute( "symbols", ".abc|.def" );
+        assert.isTrue( changedStub.calledOnce );
+        changedStub.restore();
+      } );
+
+      test( "should call _reset() from instrumentFields change", () => {
+        let changedStub = sinon.stub( element, "_reset" );
+
+        element.setAttribute( "instrument-fields", '["test1"]' );
         assert.isTrue( changedStub.calledOnce );
         changedStub.restore();
       } );

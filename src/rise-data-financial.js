@@ -71,7 +71,7 @@ class RiseDataFinancial extends PolymerElement {
   // a comma-separated list of one or more dependencies.
   static get observers() {
     return [
-      "_reset(symbols)",
+      "_reset(symbols, instrumentFields)",
       "_handleError(financialErrorMessage)"
     ]
   }
@@ -175,7 +175,8 @@ class RiseDataFinancial extends PolymerElement {
       this._refreshDebounceJob && this._refreshDebounceJob.cancel();
 
       this._log( "info", "reset", {
-        symbols: this.symbols
+        symbols: this.symbols,
+        instrumentFields: this.instrumentFields
       });
 
       this._getData( this.symbols,
@@ -197,16 +198,16 @@ class RiseDataFinancial extends PolymerElement {
   }
 
   _isValidSymbols( symbols ) {
-    if( typeof symbols !== "string" || symbols === "" ) {
+    if ( typeof symbols !== "string" || symbols === "" ) {
       return false;
     }
 
     // single symbol
-    if ( symbols.indexOf("|") === -1 ) {
+    if ( symbols.indexOf( "|" ) === -1 ) {
       return true;
     }
 
-    return symbols.split( "|" ).indexOf("") === -1;
+    return symbols.split( "|" ).indexOf( "" ) === -1;
   }
 
   _isValidType( type ) {
@@ -292,7 +293,7 @@ class RiseDataFinancial extends PolymerElement {
         )) {
           const errorMessage = RiseDataFinancial.ERROR_EVENTS[ status ];
 
-          this._log( "error", `${ errorMessage }`, {symbols: this.symbols} );
+          this._log( "error", `${ errorMessage }`, { symbols: this.symbols });
 
           // due to refresh every 60 seconds, prevent logging same error event to BQ every time
           this._eventsAlreadyLogged.push( status );
