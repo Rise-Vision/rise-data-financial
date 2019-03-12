@@ -44,17 +44,6 @@
       const start = new CustomEvent( "start" ),
         financial01 = document.querySelector('#rise-data-financial-01');
 
-      financial01.addEventListener( "instruments-received", ( evt ) => {
-        console.log( "instruments received", JSON.stringify(evt.detail) );
-
-        console.log("dispatching 'start' event");
-        financial01.dispatchEvent(start);
-      } );
-
-      financial01.addEventListener( "instruments-unavailable", () => {
-        console.log("instruments unavailable");
-      } );
-
       financial01.addEventListener( "data-update", ( evt ) => {
         console.log( "data update", JSON.stringify(evt.detail) );
       } );
@@ -66,6 +55,15 @@
       financial01.addEventListener( "request-error", ( evt ) => {
         console.log( "request error", evt.detail );
       } );
+
+      // Start the component once it's configured;
+      // but if it's already configured the listener won't work,
+      // so we directly send the request also.
+      // In the future, we may encapsulate the following lines in a helper function.
+      financial01.addEventListener('configured', () =>
+        financial01.dispatchEvent( new CustomEvent( "start" ) )
+      );
+      financial01.dispatchEvent( new CustomEvent( "start" ) );
     }
 
     window.addEventListener( "rise-components-ready", configureComponents );
