@@ -151,6 +151,7 @@ This component receives the following list of attributes:
 - **type**: 'realtime' ( default ) / 'historical'. See 'Historical Data' section above.
 - **duration**: Day / Week / 1M ( default ) / 3M / 6M / 1Y / 5Y. Only used when type == 'historical'. See 'Historical Data' section above.
 - **symbol** ( string ): Only used when type == 'historical'. indicates which instrument from the list of historical data needs to be retrieved. Example: 'AAPL.0'.
+- **non-editable**: ( empty / optional ): If present, it indicates this component is not available for customization in the template editor.
 
 ### Events
 
