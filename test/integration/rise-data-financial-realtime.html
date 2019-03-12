@@ -18,7 +18,7 @@
 <body>
 <test-fixture id="test-block">
   <template>
-    <rise-data-financial financial-list="Stocks" instrument-fields='["lastPrice", "netChange"]'></rise-data-financial>
+    <rise-data-financial symbols="AA.N|.DJI" instrument-fields='["lastPrice", "netChange"]'></rise-data-financial>
   </template>
 </test-fixture>
 
@@ -70,13 +70,6 @@
 
       test( "should start refresh timer on successful JSONP response", () => {
         element._initialStart = false;
-        element._instruments = [{
-          category: "Stocks",
-          index: 0,
-          name: "Alcoa",
-          symbol: "AA.N",
-          $id: "AA?N"
-        }];
         element._handleData( { detail: [ realTimeData ] } );
 
         assert( spy.calledOnce );
@@ -110,7 +103,7 @@
       test( "should call _reset()", () => {
         let changedStub = sinon.stub( element, "_reset" );
 
-        element.setAttribute( "financial-list", "abc123" );
+        element.setAttribute( "symbols", ".abc|.def" );
         assert.isTrue( changedStub.calledOnce );
         changedStub.restore();
       } );

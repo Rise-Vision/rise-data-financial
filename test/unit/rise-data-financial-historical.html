@@ -18,7 +18,7 @@
 <body>
 <test-fixture id="test-block">
   <template>
-    <rise-data-financial financial-list="Stocks" instrument-fields='["lastPrice", "netChange"]'></rise-data-financial>
+    <rise-data-financial symbols="AA.N|.DJI" instrument-fields='["lastPrice", "netChange"]'></rise-data-financial>
   </template>
 </test-fixture>
 
@@ -76,31 +76,15 @@
 
     suite( "_getData", () => {
 
-      const instrument = [
-          {
-            category: "Stocks",
-            index: 0,
-            name: "Alcoa",
-            symbol: "AA.N",
-            $id: "AA?N",
-          },
-          {
-            category: "Stocks",
-            index: 1,
-            name: "APPLE INC.",
-            symbol: "AAAPL.O",
-            $id: "AAPL?O",
-          }
-        ],
-        props = {
+      const props = {
           type: "historical",
           duration: "1M",
         };
 
       test( "should not execute if component configured with an invalid duration", () => {
-        const stub = sinon.stub( element, "_getSymbols" );
+        const stub = sinon.stub( element, "_getParams" );
 
-        element._getData( { type: "historical", duration: "invalid" }, instrument, [] );
+        element._getData( element.symbols, { type: "historical", duration: "invalid" }, [] );
 
         assert.isFalse( stub.called );
 
@@ -110,7 +94,7 @@
       test( "should call '_getSerializedUrl()' with correct financial test server url", () => {
         const stub = sinon.stub( element, "_getSerializedUrl" );
 
-        element._getData( props, instrument, [] );
+        element._getData( element.symbols, props, [] );
 
         assert.equal( stub.args[0][0], "https://contentfinancial2-test.appspot.com/data/historical" );
 
@@ -122,31 +106,11 @@
 
         const expected = {
           id: "ABC123",
-          code: "AA.N|AAAPL.O",
+          code: "AA.N|.DJI",
           kind: "1M",
         };
 
-        element._getData( props, instrument, [] );
-        assert.equal( stub.args[0][1].id, expected.id );
-        assert.equal( stub.args[0][1].code, expected.code );
-        assert.equal( stub.args[0][1].kind, expected.kind );
-        assert.include( stub.args[0][1].tqx, "out:json;responseHandler:" );
-
-        stub.restore();
-      } );
-
-      test( "should call '_getSerializedUrl()' with correct params with only one symbol when symbol attribute is set on the component", () => {
-        const stub = sinon.stub( element, "_getSerializedUrl" );
-
-        const expected = {
-          id: "ABC123",
-          code: "AAAPL.O",
-          kind: "1M",
-        };
-
-        element.setAttribute( "symbol", "AAAPL.O" );
-        element._getData( props, instrument, [] );
-
+        element._getData( element.symbols, props, [] );
         assert.equal( stub.args[0][1].id, expected.id );
         assert.equal( stub.args[0][1].code, expected.code );
         assert.equal( stub.args[0][1].kind, expected.kind );
