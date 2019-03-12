@@ -77,6 +77,9 @@ class RiseDataFinancial extends PolymerElement {
   }
 
   // Event name constants
+  static get EVENT_CONFIGURED() {
+    return "configured";
+  }
   static get EVENT_START() {
     return "start";
   }
@@ -129,12 +132,14 @@ class RiseDataFinancial extends PolymerElement {
     if ( display_id && typeof display_id === "string" && display_id !== "DISPLAY_ID" ) {
       this._setDisplayId( display_id );
     }
+
+    this.addEventListener( RiseDataFinancial.EVENT_START, this._handleStart, { once: true });
+
+    this._sendFinancialEvent( RiseDataFinancial.EVENT_CONFIGURED );
   }
 
   connectedCallback() {
     super.connectedCallback();
-
-    this.addEventListener( RiseDataFinancial.EVENT_START, this._handleStart );
 
     this._handleData = this._handleData.bind( this );
     this.$.financial.addEventListener( "financial-data", this._handleData );
@@ -143,7 +148,6 @@ class RiseDataFinancial extends PolymerElement {
   disconnectedCallback() {
     super.disconnectedCallback();
 
-    this.removeEventListener( RiseDataFinancial.EVENT_START, this._handleStart );
     this.$.financial.removeEventListener( "financial-data", this._handleData );
   }
 
