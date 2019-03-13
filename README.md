@@ -130,9 +130,9 @@ The following labels are already defined:
 This component receives the following list of attributes:
 
 - **id**: ( string / required ): Unique HTML id with format 'rise-data-financial-<NAME_OR_NUMBER>'.
+- **symbols** ( string / required ): List of symbols separated by pipe symbol. Example: "CADUSD=X|MXNUSD=X|USDEUR=X".
 - **label**: ( string ): An optional label key for the text that will appear in the template editor. See 'Labels' section above.
 - **category**: "bonds" / "commodities" / "currencies" / "market statistics" / "stocks" / "world indexes". Required if the component is editable.
-- **symbols** ( string ): List of symbols separated by pipe symbol. Required if the component is editable. Example: "CADUSD=X|MXNUSD=X|USDEUR=X".
 - **instrument-fields** ( array of strings / optional ): if not provided, all fields will be retrieved. Example: ```["instrument", "name", "lastPrice"]```
 - **type**: 'realtime' ( default ) / 'historical'. See 'Historical Data' section above.
 - **duration**: Day / Week / 1M ( default ) / 3M / 6M / 1Y / 5Y. Only used when type == 'historical'. See 'Historical Data' section above.
