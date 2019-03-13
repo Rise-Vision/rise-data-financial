@@ -2,61 +2,53 @@
 
 ## Introduction
 
-`rise-data-financial` is a Polymer 3 Web Component that works together with the [Rise Vision Financial Selector](https://selector.risevision.com/), a web app for managing financial content. It retrieves the financial list and its corresponding instruments from [Firebase](https://firebase.google.com/). Data is refreshed in realtime, so any changes that are made to a particular financial list in the Financial Selector are immediately propagated to the `rise-data-financial` component.
+`rise-data-financial` is a Polymer 3 Web Component that retrieves licensed Financial data from the Rise Vision Financial Server API.
 
 Instructions for demo page here:
 https://github.com/Rise-Vision/rise-data-financial/blob/master/demo/README.md
 
 ## Usage
-The component has an external dependency on [Firebase](https://firebase.google.com/) and has not been built to bundle the required SDK libraries. This means the required Firebase libraries must be explicitly imported in the `<head>` of the HTML page that you are using the component. **_Note_**: The version of Firebase used below is just for example purposes.
 
-```
-<html>
-  <head>
-	...
-	<script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-database.js"></script>
-    ...
-  </head>
-  <body>
-    ...
-  </body>
-</html>
-```
-
-The below illustrates simple usage of the component and listening to the `rise-components-loaded` event to initiate. This is required in order to know that the component has been imported to the page. See the demo section in this repo for a full working example of an HTML page using the component which will illustrate required imports in the `<head>` of the page.
+The below illustrates simple usage of the component and listening to the `rise-components-ready` event to initiate. This is required in order to know that the component has been imported to the page. See the demo section in this repo for a full working example of an HTML page using the component which will illustrate required imports in the `<head>` of the page.
 
 ### Example
 
 ```
   <body>
     <script>
-      function onComponentsLoaded( evt ) {
-        if ( !evt.detail.isLoaded ) {
-          console.log( "load process failed" );
-          return;
-        }
+      function configureComponents( evt ) {
+        const start = new CustomEvent( "start" ),
+        	financial01 = document.querySelector('#rise-data-financial-01');
 
-        const financial = document.querySelector( "rise-data-financial" );
+      	financial01.addEventListener( "data-update", ( evt ) => {
+        	console.log( "data update", JSON.stringify(evt.detail) );
+      	} );
 
-        financial.addEventListener( "instruments-received", () => {
-          // instruments have been retrieved, can now dispatch 'start' event to get data
-          financial.dispatchEvent(new CustomEvent("start"));
-        } );
+      	financial01.addEventListener( "data-error", ( evt ) => {
+        	console.log( "data error", evt.detail );
+      	} );
 
-        financial.addEventListener( "data-update", ( evt ) => {
-          // data has been received
-          console.log( "data update", evt.detail );
-        } );
+      	financial01.addEventListener( "request-error", ( evt ) => {
+        	console.log( "request error", evt.detail );
+      	} );
+
+      	// Start the component once it's configured, but if it's already 
+      	// configured the listener won't work, so we directly send the 
+      	// request also.
+      	financial01.addEventListener('configured', () =>
+        	financial01.dispatchEvent( new CustomEvent( "start" ) )
+      	);
+      	
+      	financial01.dispatchEvent( new CustomEvent( "start" ) );
       }
 
-      window.addEventListener( "rise-components-loaded", onComponentsLoaded);
+      window.addEventListener( "rise-components-ready", configureComponents);
     </script>
 
     <rise-data-financial
       id="financial01"
-      financial-list="-ABC123DEF456"
-      instrument-fields='["instrument", "name", "lastPrice", "netChange"]'>
+      symbols="C.N|IBM.N|KO|WMT.N"
+      instrument-fields='["name", "lastPrice", "netChange", "percentChange"]'>
     </rise-data-financial>
 ...
 
@@ -73,7 +65,7 @@ If no `instrument-fields` attribute is provided, all fields are returned by defa
 
 ```
 <rise-data-financial
-  financial-list="-ABC123DEF456"
+  symbols=".ABC|.DEF"
   instrument-fields='["instrument", "name"]'>
 </rise-data-financial>
 ```
@@ -85,17 +77,14 @@ Valid values for the `instrument-fields` attribute for historical data are: `acc
 
 If no `instrument-fields` attribute is provided, all fields are returned by default.
 
-In case the list of instruments contains more than one instrument an attribute `symbol` can be set to specify which instrument from the list the historical data needs to be retrieved.
-
 #### Example
 
 ```
 <rise-data-financial
   duration="1M"
-  financial-list="-ABC123DEF456"
+  symbols=".ABC|.DEF"
   instrument-fields='["closePrice", "percentChange"]'
-  type="historical"
-  symbol="AAPL.O">
+  type="historical">
 </rise-data-financial>
 ```
 
@@ -103,11 +92,9 @@ In case the list of instruments contains more than one instrument an attribute `
 
 When listening for the "data-update" event, the `event.detail` object returned is an object of the following format:
 
-![rise-financial data](https://cloud.githubusercontent.com/assets/1190420/21622351/1b53131c-d1cb-11e6-8ae3-2d1e2fb9049d.png)
+![rise-financial data](https://content.screencast.com/users/stulees/folders/Snagit/media/d7bd19a3-c6ac-4bbc-8072-42e2cf3393d3/2019-03-13_13-07-58.png)
 
 _data_ is an object with _cols_ and _rows_ properties, where _cols_ is an array that contains additional information about the requested fields, and _rows_ is an array that contains the actual data.
-
-_instruments_ is an object that provides details about every instrument found in the financial list.
 
 ### Labels
 
@@ -146,26 +133,23 @@ This component receives the following list of attributes:
 - **label**: ( string ): An optional label key for the text that will appear in the template editor. See 'Labels' section above.
 - **category**: "bonds" / "commodities" / "currencies" / "market statistics" / "stocks" / "world indexes". Required if the component is editable.
 - **symbols** ( string ): List of symbols separated by pipe symbol. Required if the component is editable. Example: "CADUSD=X|MXNUSD=X|USDEUR=X".
-- **financial-list** ( string / required ): Id of the financial list in Financial Selector ( won't be required once the component fully supports the symbols attribute ).
 - **instrument-fields** ( array of strings / optional ): if not provided, all fields will be retrieved. Example: ```["instrument", "name", "lastPrice"]```
 - **type**: 'realtime' ( default ) / 'historical'. See 'Historical Data' section above.
 - **duration**: Day / Week / 1M ( default ) / 3M / 6M / 1Y / 5Y. Only used when type == 'historical'. See 'Historical Data' section above.
-- **symbol** ( string ): Only used when type == 'historical'. indicates which instrument from the list of historical data needs to be retrieved. Example: 'AAPL.0'.
 - **non-editable**: ( empty / optional ): If present, it indicates this component is not available for customization in the template editor.
 
 ### Events
 
 The component sends the following events:
 
-- **_instruments-received_**: Instruments for the financial list provided have been successfully received from Firebase. The component is ready to execute getting data by dispatching _start_ event on the component.
-- **_instruments-unavailable_**: Instruments were not able to be retrieved and the component will not be able to execute getting data. Potential reasons could be no network, required Firebase imports were not included in HTML page, or the financial list provided was not found.
+- **_configured_**: The component has initialized what it requires to and is ready to handle a _start_ event. 
 - **_data-update_**: Data has been retrieved and the data object is provided in `event.detail`
 - **_data-error_**: The financial server responded with a Error and the object is provided in `event.detail`
 - **_request-error_**: There was a problem making the JSONP request to Financial server and the message object is provided in `event.detail`.
 
 The component is listening for the following events:
 
-- **_start_**: This event will initiate getting data from Financial server. It can be dispatch on the component when _instruments-received_ event has been fired as that event indicates the component successfully retrieved instruments and is ready to make a request to the Financial server to retrieve data.
+- **_start_**: This event will initiate getting data from Financial server. It can be dispatched on the component when _configured_ event has been fired as that event indicates the component has initialized what it requires to and is ready to make a request to the Financial server to retrieve data.
 
 
 
