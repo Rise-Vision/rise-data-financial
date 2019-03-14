@@ -100,30 +100,19 @@ _data_ is an object with _cols_ and _rows_ properties, where _cols_ is an array 
 
 The component may define a 'label' attribute that defines the text that will appear for this instance in the template editor.
 
-This attribute holds a key pointing to a localized text defined in [common-header](https://github.com/Rise-Vision/common-header/tree/master/src/locales/locales_json/en), for example:
+This attribute holds a literal value, for example:
 
 ```
   <rise-data-financial
     id="financial01"
     category="currencies"
-    label="template.financial.currencies"
+    label="Example Label"
     symbols="CADUSD=X|MXNUSD=X|USDEUR=X"
     instrument-fields='["instrument", "name", "lastPrice", "netChange"]'>
   </rise-data-financial>
 ```
 
-If it's not set, the label for the component defaults to 'template.rise-data-financial' ( this key is already defined ). Any new label to be used should be defined in the common-header project, ideally under the "financial" section of the [template.json](https://github.com/Rise-Vision/common-header/blob/master/src/locales/locales_json/en/template.json) file.
-
-Also, the [rise-vision-apps](https://github.com/Rise-Vision/rise-vision-apps/blob/master/bower.json) project should be updated to point to the version with that label.
-
-The following labels are already defined:
-
-- **template.financial.bonds**
-- **template.financial.commodities**
-- **template.financial.currencies**
-- **template.financial.market-statistics**
-- **template.financial.stocks**
-- **template.financial.world-indexes**
+If it's not set, the label for the component defaults to "Financial", which is applied via the    [generate_blueprint.js](https://github.com/Rise-Vision/html-template-library/blob/master/generate_blueprint.js) file for a HTML Template build/deployment. 
 
 ### Attributes
 
