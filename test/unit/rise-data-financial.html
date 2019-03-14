@@ -7,7 +7,6 @@
 
   <script src="../../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
   <script src="../../node_modules/wct-browser-legacy/browser.js"></script>
-  <script src="../mocks/firebase.js"></script>
   <script type="text/javascript">
     RisePlayerConfiguration = {
       isConfigured: () => true
@@ -19,7 +18,7 @@
 <body>
 <test-fixture id="test-block">
   <template>
-    <rise-data-financial financial-list="Stocks" instrument-fields='["lastPrice", "netChange"]'></rise-data-financial>
+    <rise-data-financial symbols="AA.N|.DJI" instrument-fields='["lastPrice", "netChange"]'></rise-data-financial>
   </template>
 </test-fixture>
 
@@ -86,12 +85,37 @@
 
     suite( "Properties", () => {
 
-      test( "should set financial list property", () => {
-        assert.equal( element.financialList, "Stocks" );
+      test( "should set symbols property", () => {
+        assert.equal( element.symbols, "AA.N|.DJI" );
       } );
 
       test( "should set instrument fields array", () => {
         assert.deepEqual( element.instrumentFields, [ "lastPrice", "netChange" ] );
+      } );
+
+    } );
+
+    suite( "_isValidSymbols", () => {
+
+      test( "should return true if 'symbols' attribute is a non-empty String", () => {
+        assert.isTrue( element._isValidSymbols( ".ABC" ) );
+      } );
+
+      test( "should return false if 'symbols' attribute is not a String or empty String", () => {
+        assert.isFalse( element._isValidSymbols( 123 ) );
+        assert.isFalse( element._isValidSymbols( [".abc|.def"] ) );
+        assert.isFalse( element._isValidSymbols( "" ) );
+      } );
+
+      test( "should return true if 'symbols' attribute is a String containing values separated by '|'", () => {
+        assert.isTrue( element._isValidSymbols( ".abc|.def|.ghi" ) );
+      } );
+
+      test( "should return false if 'symbols' attribute contains '|' with any empty value", () => {
+        assert.isFalse( element._isValidSymbols( ".abc|" ) );
+        assert.isFalse( element._isValidSymbols( "|.abc" ) );
+        assert.isFalse( element._isValidSymbols( "|" ) );
+        assert.isFalse( element._isValidSymbols( ".abc|.def||.ghi" ) );
       } );
 
     } );
@@ -112,30 +136,6 @@
 
     } );
 
-    suite( "_getInstrumentsFromLocalStorage", () => {
-      setup( () => {
-        localStorage.removeItem( `risedatafinancial_${element.financialList}` );
-        localStorage.setItem(
-          `risefinancial_${element.financialList}`,
-          JSON.stringify( instruments )
-        );
-      } );
-
-      teardown( () => {
-        localStorage.removeItem( `risedatafinancial_${element.financialList}` );
-      } );
-
-      test( "should provide instruments from local storage", (done) => {
-        element._getInstrumentsFromLocalStorage( `risefinancial_${element.financialList}` )
-          .then((data)=>{
-            assert.deepEqual( data, instruments );
-            done();
-          })
-          .catch(() => console.log("shouldn't be here"));
-      } );
-
-    } );
-
     suite( "_refresh", () => {
 
       test( "should make a new request for data after 1 minute", () => {
@@ -147,155 +147,12 @@
 
         clock.tick( 60000 );
 
-        assert.isTrue( stub.calledWith({
+        assert.isTrue( stub.calledWith("AA.N|.DJI", {
           duration: "1M",
           type: "realtime"
-        }, element._instruments, [ "lastPrice", "netChange" ]) );
+        }, [ "lastPrice", "netChange" ]) );
 
         stub.restore();
-      } );
-
-    } );
-
-    suite( "_getInstruments", () => {
-      let spy;
-
-      setup( () => {
-        spy = sinon.stub( element, "_handleInstruments" );
-      } );
-
-      teardown( () => {
-        spy.restore();
-      } );
-
-      test( "should trigger _handleInstruments() to be executed upon instruments received", () => {
-        element._getInstruments();
-
-        assert( spy.calledOnce );
-      } );
-
-      test( "should get instruments from local storage if firebase not connected", (done) => {
-        clock.restore();
-
-        sinon.stub(element, "_getInstrumentsFromLocalStorage", ()=> {
-          return Promise.resolve(instruments);
-        });
-
-        element._instrumentsReceived = false;
-        element._instruments = undefined;
-        element._firebaseConnected = false;
-
-        element._getInstruments();
-
-        setTimeout(() => {
-          assert.isTrue( element._instrumentsReceived );
-          assert.deepEqual( element._instruments, instruments );
-
-          element._firebaseConnected = true;
-          element._getInstrumentsFromLocalStorage.restore();
-
-          clock = sinon.useFakeTimers();
-
-          done();
-        }, 500);
-      } );
-
-      test( "should send 'instruments-unavailable' event if firebase not connected and localStorage empty", ( done ) => {
-        let listener = () => {
-          element._getInstrumentsFromLocalStorage.restore();
-          element._firebaseConnected = true;
-          element._instrumentsReceived = true;
-          element.removeEventListener( "instruments-unavailable", listener );
-          done();
-        };
-
-        sinon.stub( element, "_getInstrumentsFromLocalStorage", () => {
-          return Promise.reject();
-        } );
-
-        element._instrumentsReceived = false;
-        element._firebaseConnected = false;
-
-        element.addEventListener( "instruments-unavailable", listener );
-        element._getInstruments();
-      } );
-
-      test( "should not trigger _handleInstruments() if no financialList attribute", () => {
-        element.financialList = "";
-        element._getInstruments();
-
-        assert.equal( spy.callCount, 0 );
-
-        element.financialList = "Stocks";
-      } );
-
-      test( "should not trigger _handleInstruments() if firebase connection status not determined", () => {
-        element._firebaseConnected = undefined;
-        element._getInstruments();
-
-        assert.equal( spy.callCount, 0 );
-
-        element._firebaseConnected = true;
-      } );
-
-    } );
-
-    suite( "_handleInstruments", () => {
-
-      test( "should set _instruments and send 'instruments-received' event", ( done ) => {
-        let listener = () => {
-          element.removeEventListener( "instruments-received", listener );
-
-          assert.deepEqual( element._instruments, [ inst1 ] );
-
-          done();
-        };
-
-        element.addEventListener( "instruments-received", listener );
-
-        element._handleInstruments( {
-          val: () => {
-            return instrument;
-          }
-        } );
-      } );
-
-      test( "should set _instruments to empty array and send 'instruments-received' event", ( done ) => {
-        let listener = () => {
-          element.removeEventListener( "instruments-received", listener );
-
-          assert.deepEqual( element._instruments, [] );
-
-          done();
-        };
-
-        element.addEventListener( "instruments-received", listener );
-
-        element._handleInstruments( {
-          val: () => {
-            return null;
-          }
-        } );
-
-      } );
-
-    } );
-
-    suite( "_saveInstruments", () => {
-
-      setup( () => {
-        localStorage.removeItem( `risedatafinancial_${element.financialList}` );
-      } );
-
-      teardown( () => {
-        localStorage.removeItem( `risedatafinancial_${element.financialList}` );
-      } );
-
-      test( "should save instruments to local storage", () => {
-        element._saveInstruments( [ inst1 ] );
-
-        assert.deepEqual( JSON.parse( localStorage.getItem( `risedatafinancial_${element.financialList}` ) ),
-          [ inst1 ] ); // eslint-disable-line quotes
       } );
 
     } );
@@ -342,56 +199,19 @@
 
     } );
 
-    suite( "_getSymbols", () => {
-
-      teardown( () => {
-        element.setAttribute( "symbol", "" );
-        element._invalidSymbol = false;
-      } );
-
-      test( "should return empty string if no instruments", () => {
-        assert.equal( element._getSymbols( [] ), "" );
-      } );
-
-      test( "should return string of instrument symbols separated by |", () => {
-        assert.equal( element._getSymbols( instruments ), "AA.N|.DJI" );
-      } );
-
-      test( "should return only the single symbol if the symbol attribute is set and it is within the list of instruments", () => {
-        element.setAttribute( "symbol", ".DJI" );
-        assert.equal( element._getSymbols( instruments ), ".DJI" );
-      } );
-
-      test( "should set invalidSymbol and send 'invalid-symbol' event", ( done ) => {
-        let listener = () => {
-          element.removeEventListener( "invalid-symbol", listener );
-
-          assert.isTrue( element._invalidSymbol );
-
-          done();
-        };
-
-        element.addEventListener( "invalid-symbol", listener );
-
-        element.setAttribute( "symbol", ".TEST" );
-        assert.equal( element._getSymbols( instruments ), "" );
-      } );
-
-    } );
-
     suite( "_getKey()", () => {
 
-      test( "should return correct key value when configured with defaults and without symbol", () => {
-        const expected = `risedatafinancial_${element.type}_${element.displayId}_${element.financialList}_${element.duration}_`;
+      test( "should return correct key value when configured with defaults", () => {
+        const expected = `risedatafinancial_${element.type}_${element.displayId}_${element.symbols}_${element.duration}`;
         assert.equal( element._getKey(), expected );
       } );
 
-      test( "should return correct key value when configured different from defaults and with symbol", () => {
+      test( "should return correct key value when configured different from defaults", () => {
         element.symbol = instrument.symbol;
         element.type = "historical";
         element.duration = "week";
 
-        const expected = `risedatafinancial_${element.type}_${element.displayId}_${element.financialList}_${element.duration}_${element.symbol}`;
+        const expected = `risedatafinancial_${element.type}_${element.displayId}_${element.symbols}_${element.duration}`;
         assert.equal( element._getKey(), expected );
       } );
 
@@ -421,10 +241,24 @@
           duration: "1M",
         };
 
-      test( "should not execute if component configured with an invalid type", () => {
-        const stub = sinon.stub( element, "_getSymbols" );
+      test( "should not execute if component configured with an invalid symbols", () => {
+        const stub = sinon.stub( element, "_getParams" );
 
-        element._getData( { type: "invalid", duration: "1M" }, instruments, [] );
+        element._getData( 123, { type: "historical", duration: "1M" }, [] );
+
+        assert.isFalse( stub.called );
+
+        element._getData( ["test"], { type: "historical", duration: "1M" }, [] );
+
+        assert.isFalse( stub.called );
+
+        stub.restore();
+      } );
+
+      test( "should not execute if component configured with an invalid type", () => {
+        const stub = sinon.stub( element, "_getParams" );
+
+        element._getData( element.symbols, { type: "invalid", duration: "1M" }, [] );
 
         assert.isFalse( stub.called );
 
@@ -432,9 +266,9 @@
       } );
 
       test( "should not execute if component configured for historical with an invalid duration", () => {
-        const stub = sinon.stub( element, "_getSymbols" );
+        const stub = sinon.stub( element, "_getParams" );
 
-        element._getData( { type: "historical", duration: "invalid" }, instruments, [] );
+        element._getData( element.symbols, { type: "historical", duration: "invalid" }, [] );
 
         assert.isFalse( stub.called );
 
@@ -444,7 +278,7 @@
       test( "should call '_getSerializedUrl()' with realtime financial test server url", () => {
         const stub = sinon.stub( element, "_getSerializedUrl" );
 
-        element._getData( props, instruments, [] );
+        element._getData( element.symbols, props, [] );
 
         assert.equal( stub.args[0][0], "https://contentfinancial2-test.appspot.com/data" );
 
@@ -455,7 +289,7 @@
         const stub = sinon.stub( element, "_getSerializedUrl" );
 
         props.type = "historical";
-        element._getData( props, instruments, [] );
+        element._getData( element.symbols, props, [] );
 
         assert.equal( stub.args[0][0], "https://contentfinancial2-test.appspot.com/data/historical" );
 
@@ -463,25 +297,7 @@
         stub.restore();
       } );
 
-      test( "should call '_getSerializedUrl()' with correct params for single instrument", () => {
-        const stub = sinon.stub( element, "_getSerializedUrl" );
-
-        const expected = {
-          id: "ABC123",
-          code: "AA.N",
-          tq: "select lastPrice,netChange"
-        };
-
-        element._getData( props, [ inst1 ], fields );
-        assert.equal( stub.args[0][1].id, expected.id );
-        assert.equal( stub.args[0][1].code, expected.code );
-        assert.equal( stub.args[0][1].tq, expected.tq );
-        assert.include( stub.args[0][1].tqx, "out:json;responseHandler:" );
-
-        stub.restore();
-      } );
-
-      test( "should call '_getSerializedUrl()' with correct params for multiple instruments", () => {
+      test( "should call '_getSerializedUrl()' with correct params", () => {
         const stub = sinon.stub( element, "_getSerializedUrl" );
 
         const expected = {
@@ -490,7 +306,7 @@
           tq: "select lastPrice,netChange"
         };
 
-        element._getData( props, instruments, fields );
+        element._getData( element.symbols, props, fields );
 
         assert.equal( stub.args[0][1].id, expected.id );
         assert.equal( stub.args[0][1].code, expected.code );
@@ -500,33 +316,13 @@
         stub.restore();
       } );
 
-      test( "should not execute request if symbol is invalid", () => {
-        const stub = sinon.stub( element, "_getSerializedUrl" );
-
-        element.setAttribute( "symbol", ".YYY" );
-        element._getData( props, instruments, fields );
-
-        assert.isFalse( stub.called );
-
-        stub.restore();
-      } );
-
     } );
 
     suite( "_handleData", () => {
-      setup( () => {
-        element._instruments = instruments;
-      } );
 
-      teardown( () => {
-        element._instruments = [];
-        element.removeAttribute( "symbol" );
-      } );
-
-      test( "should send 'data-update' event with instruments and data", ( done ) => {
+      test( "should send 'data-update' event with data", ( done ) => {
         const listener = ( evt ) => {
           assert.deepEqual( evt.detail, {
-            instruments: instruments,
             data: realTimeData.table,
           } );
 
@@ -538,30 +334,9 @@
         element._handleData( { detail: [ realTimeData ] } );
       } );
 
-      test( "should send 'data-update' event with instruments and data for a single instrument when symbol is set", ( done ) => {
+      test( "should send 'data-update' event with empty detail when no table provided", ( done ) => {
         const listener = ( evt ) => {
-          assert.deepEqual( evt.detail, {
-            instruments: [ inst2 ],
-            data: realTimeData.table,
-          } );
-
-          element.removeEventListener( "data-update", listener );
-          done();
-        };
-
-        element.setAttribute( "symbol", ".DJI" );
-        element._invalidSymbol = false;
-        element._instruments = instruments;
-
-        element.addEventListener( "data-update", listener );
-        element._handleData( { detail: [ realTimeData ] } );
-      } );
-
-      test( "should send 'data-update' event with instruments only when no table provided", ( done ) => {
-        const listener = ( evt ) => {
-          assert.deepEqual( evt.detail, {
-            instruments: instruments
-          } );
+          assert.deepEqual( evt.detail, {} );
 
           element.removeEventListener( "data-update", listener );
           done();
@@ -618,10 +393,10 @@
         clock.tick( 1000 );
 
         assert.equal( stub.callCount, 1 );
-        assert.isTrue( stub.calledWith({
+        assert.isTrue( stub.calledWith( element.symbols, {
           duration: "1M",
           type: "realtime"
-        }, element._instruments, [ "lastPrice", "netChange" ]) );
+        }, [ "lastPrice", "netChange" ]) );
 
         element.financialErrorMessage = "Test error message";
 
@@ -645,71 +420,27 @@
     } );
 
     suite( "_reset", () => {
-      let instrumentsStub;
+      let getDataStub;
 
       setup( () => {
-        instrumentsStub = sinon.stub( element, "_getInstruments" );
+        getDataStub = sinon.stub( element, "_getData" );
       } );
 
       teardown( () => {
-        instrumentsStub.restore();
+        getDataStub.restore();
       } );
 
-      test( "should call _getInstruments() if not initial start", () => {
+      test( "should call _getData() if not initial start", () => {
         // need to remove the stub and add back on every test
         _resetStub.restore();
         element._initialStart = false;
         element._logDataUpdate = false;
         element._reset();
 
-        assert.isTrue( element._getDataPending );
         assert.isTrue( element._logDataUpdate );
-        assert.isTrue( instrumentsStub.calledOnce );
+        assert.isTrue( getDataStub.calledOnce );
 
         _resetStub = sinon.stub( element, "_reset" );
-      } );
-
-    } );
-
-    suite( "_handleConnected", () => {
-      let stub;
-
-      setup( () => {
-        stub = sinon.stub( element, "_getInstruments" );
-      } );
-
-      teardown( () => {
-        stub.restore();
-        setFirebaseConnectionStatus( true );
-      } );
-
-      test( "should set firebase connected status and call '_getInstruments()' when still needing instruments", () => {
-        element._instrumentsReceived = false;
-        setFirebaseConnectionStatus( true );
-
-        assert.isTrue( stub.calledOnce );
-        assert.isTrue( element._firebaseConnected );
-
-        element._instrumentsReceived = true;
-      } );
-
-      test( "should not call '_getInstruments()' if instruments already received", () => {
-        setFirebaseConnectionStatus( true );
-
-        assert.equal( stub.callCount, 0 );
-        assert.isTrue( element._firebaseConnected );
-      } );
-
-      test( "should call '_getInstruments()' if no connection within 2 seconds and still needing instruments", () => {
-        element._instrumentsReceived = false;
-        setFirebaseConnectionStatus( false );
-
-        clock.tick( 2000 );
-
-        assert.isTrue( stub.calledOnce );
-        assert.isFalse( element._firebaseConnected );
-
-        element._firebaseConnected = true;
       } );
 
     } );
@@ -725,44 +456,22 @@
       test( "should call _getData() when this is the initial 'start'", () => {
         const stub = sinon.stub( element, "_getData" );
 
-        element._instrumentsReceived = true;
-
         const event = new CustomEvent( "start" );
         element.dispatchEvent( event );
 
-        assert.isTrue( stub.calledWith({
+        assert.isTrue( stub.calledWith( element.symbols, {
           duration: "1M",
           type: "realtime"
-        }, element._instruments, [ "lastPrice", "netChange" ]) );
+        }, [ "lastPrice", "netChange" ]) );
 
         assert.isFalse( element._initialStart, "_initialStart set to false" );
 
         stub.restore();
       } );
 
-      test( "should call _getData() when this is not the initial 'start' but _getDataPending is true", () => {
-        const stub = sinon.stub( element, "_getData" );
-
-        element._instrumentsReceived = true;
-        element._getDataPending = true;
-
-        const event = new CustomEvent( "start" );
-        element.dispatchEvent( event );
-
-        assert.isTrue( stub.calledWith({
-          duration: "1M",
-          type: "realtime"
-        }, element._instruments, [ "lastPrice", "netChange" ]) );
-
-        assert.isFalse( element._initialStart, "_initialStart set to false" );
-
-        stub.restore();
-      } );
-
-      test( "should not call _getData() when this is not the initial start and _getDataPending is false", () => {
+      test( "should not call _getData() when this is not the initial start", () => {
         const spy = sinon.stub( element, "_getData" );
 
-        element._instrumentsReceived = true;
         element._initialStart = false;
 
         const event = new CustomEvent( "getData" );
@@ -781,12 +490,6 @@
 
       setup( () => {
         sampleData = {
-          "instruments": [{
-            "$id": "%2EAV%2EN",
-            "category": "Market Statistics",
-            "name": "NYSE MOST ACTIVES",
-            "symbol": ".AV.N"
-          }],
           "data": {
             "cols": [],
             "rows": [{
@@ -818,7 +521,8 @@
 
         assert.isTrue( stub.calledWith(
           "error",
-          "Rise is not permissioned to show the instrument .AV.N"
+          "Rise is not permissioned to show the instrument",
+          { symbols: element.symbols }
         ));
 
         assert.deepEqual( element._eventsAlreadyLogged, ["N/P"] );
@@ -836,11 +540,13 @@
 
         assert.isTrue( stub.calledWith(
           "error",
-          "Rise is not permissioned to show the instrument .AV.N"
+          "Rise is not permissioned to show the instrument",
+          { symbols: element.symbols }
         ));
         assert.isTrue( stub.calledWith(
           "error",
-          "Display is not permissioned to show the instrument .AV.N"
+          "Display is not permissioned to show the instrument",
+          { symbols: element.symbols }
         ));
 
         assert.deepEqual( element._eventsAlreadyLogged, ["N/P", "S/P"] );
@@ -848,7 +554,7 @@
         stub.restore();
       } );
 
-      test( "should log errors if they were already logged", () => {
+      test( "should not log errors if they were already logged", () => {
         const stub = sinon.stub( element, "_log" );
 
         sampleData.data.rows[0].c[0].v = "N/P";

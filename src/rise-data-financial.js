@@ -3,7 +3,6 @@
 import { PolymerElement, html } from "@polymer/polymer";
 import { timeOut } from "@polymer/polymer/lib/utils/async.js";
 import { Debouncer } from "@polymer/polymer/lib/utils/debounce.js";
-import { database } from "./rise-data-financial-config.js";
 import { financialServerConfig } from "./rise-data-financial-config.js";
 import { version } from "./rise-data-financial-version.js";
 import "@polymer/iron-jsonp-library/iron-jsonp-library.js";
@@ -23,9 +22,9 @@ class RiseDataFinancial extends PolymerElement {
   static get properties() {
     return {
       /**
-       * ID of the financial list in Financial Selector.
+       * List of symbol values separated by "|" to fetch data for
        */
-      financialList: {
+      symbols: {
         type: String,
         value: ""
       },
@@ -58,14 +57,6 @@ class RiseDataFinancial extends PolymerElement {
       },
 
       /**
-       * A single instrument symbol to return data for
-       */
-      symbol: {
-        type: String,
-        value: ""
-      },
-
-      /**
        * The id of the display running this instance of the component.
        */
       displayId: {
@@ -80,17 +71,14 @@ class RiseDataFinancial extends PolymerElement {
   // a comma-separated list of one or more dependencies.
   static get observers() {
     return [
-      "_reset(financialList, symbol)",
+      "_reset(symbols, instrumentFields)",
       "_handleError(financialErrorMessage)"
     ]
   }
 
   // Event name constants
-  static get EVENT_INSTRUMENTS_RECEIVED() {
-    return "instruments-received";
-  }
-  static get EVENT_INSTRUMENTS_UNAVAILABLE() {
-    return "instruments-unavailable";
+  static get EVENT_CONFIGURED() {
+    return "configured";
   }
   static get EVENT_START() {
     return "start";
@@ -119,13 +107,8 @@ class RiseDataFinancial extends PolymerElement {
   constructor() {
     super();
 
-    this._firebaseConnected = undefined;
-    this._instrumentsReceived = false;
-    this._connectDebounceJob = null;
     this._refreshDebounceJob = null;
     this._initialStart = true;
-    this._invalidSymbol = false;
-    this._getDataPending = false;
     this._logDataUpdate = true;
     this._financialRequestRetryCount = 0;
     this._eventsAlreadyLogged = [];
@@ -149,16 +132,14 @@ class RiseDataFinancial extends PolymerElement {
     if ( display_id && typeof display_id === "string" && display_id !== "DISPLAY_ID" ) {
       this._setDisplayId( display_id );
     }
+
+    this.addEventListener( RiseDataFinancial.EVENT_START, this._handleStart, { once: true });
+
+    this._sendFinancialEvent( RiseDataFinancial.EVENT_CONFIGURED );
   }
 
   connectedCallback() {
     super.connectedCallback();
-
-    this._connectedRef = database.ref( ".info/connected" );
-    this._handleConnected = this._handleConnected.bind( this );
-    this._connectedRef.on( "value", this._handleConnected );
-
-    this.addEventListener( RiseDataFinancial.EVENT_START, this._handleStart );
 
     this._handleData = this._handleData.bind( this );
     this.$.financial.addEventListener( "financial-data", this._handleData );
@@ -167,10 +148,6 @@ class RiseDataFinancial extends PolymerElement {
   disconnectedCallback() {
     super.disconnectedCallback();
 
-    this._connectedRef.off( "value", this._handleConnected );
-    this._instrumentsRef.off( "value", this._handleInstruments );
-
-    this.removeEventListener( RiseDataFinancial.EVENT_START, this._handleStart );
     this.$.financial.removeEventListener( "financial-data", this._handleData );
   }
 
@@ -196,104 +173,23 @@ class RiseDataFinancial extends PolymerElement {
     }
   }
 
-  _getInstrumentsFromLocalStorage( key ) {
-    return new Promise(( resolve, reject ) => {
-      try {
-        const instruments = JSON.parse( localStorage.getItem( key ));
-
-        resolve( instruments );
-      } catch ( e ) {
-        console.warn( e.message );
-        reject();
-      }
-    });
-  }
-
-  _getInstruments() {
-    if ( !this.financialList || this._firebaseConnected === undefined ) {
-      return;
-    }
-
-    if ( this._firebaseConnected ) {
-      this._instrumentsRef = database.ref( `lists/${ this.financialList }/instruments` );
-      this._handleInstruments = this._handleInstruments.bind( this );
-
-      this._instrumentsRef.on( "value", this._handleInstruments );
-    } else {
-      this._getInstrumentsFromLocalStorage( `risedatafinancial_${ this.financialList }` )
-        .then(( instruments ) => {
-          this._instrumentsReceived = true;
-          this._instruments = instruments;
-
-          this._log( "info", RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, { instruments: this._instruments, from: "localStorage" });
-          this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, this._instruments );
-        })
-        .catch(() => {
-          this._log( "error", RiseDataFinancial.EVENT_INSTRUMENTS_UNAVAILABLE );
-          this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_UNAVAILABLE );
-        });
-    }
-  }
-
-  _saveInstruments( instruments ) {
-    try {
-      localStorage.setItem( `risedatafinancial_${ this.financialList }`, JSON.stringify( instruments ));
-    } catch ( e ) {
-      console.warn( e.message );
-    }
-  }
-
-  _handleConnected( snapshot ) {
-    if ( !this._instrumentsReceived ) {
-      if ( !snapshot.val()) {
-        // account for multiple "false" values being initially returned even though network status is online
-        if ( !this._connectDebounceJob || !this._connectDebounceJob.isActive()) {
-          this._connectDebounceJob = Debouncer.debounce( this._connectDebounceJob, timeOut.after( 2000 ), () => {
-            this._firebaseConnected = false;
-            this._log( "warning", "firebase not connected", {
-              financialList: this.financialList,
-              symbol: this.symbol
-            });
-            this._getInstruments();
-          });
-        }
-      } else {
-        this._connectDebounceJob && this._connectDebounceJob.cancel();
-        this._firebaseConnected = true;
-
-        this._log( "info", "firebase connected", {
-          financialList: this.financialList,
-          symbol: this.symbol
-        });
-
-        this._getInstruments();
-      }
-    }
-  }
-
-  _handleInstruments( snapshot ) {
-    const instruments = snapshot.val() || {};
-
-    this._instruments = this._sortInstruments( instruments );
-    this._instrumentsReceived = true;
-    this._saveInstruments( this._instruments );
-
-    this._log( "info", RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, { instruments: this._instruments, from: "firebase" });
-    this._sendFinancialEvent( RiseDataFinancial.EVENT_INSTRUMENTS_RECEIVED, this._instruments );
-  }
-
   _reset() {
     if ( !this._initialStart ) {
-      this._getDataPending = true;
       this._logDataUpdate = true;
       this._refreshDebounceJob && this._refreshDebounceJob.cancel();
 
       this._log( "info", "reset", {
-        financialList: this.financialList,
-        symbol: this.symbol
+        symbols: this.symbols,
+        instrumentFields: this.instrumentFields
       });
 
-      this._getInstruments();
+      this._getData( this.symbols,
+        {
+          type: this.type,
+          duration: this.duration,
+        },
+        this.instrumentFields
+      );
     }
   }
 
@@ -305,18 +201,17 @@ class RiseDataFinancial extends PolymerElement {
     this.dispatchEvent( event );
   }
 
-  _sortInstruments( instrumentMap ) {
-    const list = Object.keys( instrumentMap )
-      .map(( $id ) => Object.assign({ $id }, instrumentMap[ $id ]))
-      .sort(( i1, i2 ) => this._numberify( i1.order ) - this._numberify( i2.order ));
+  _isValidSymbols( symbols ) {
+    if ( typeof symbols !== "string" || symbols === "" ) {
+      return false;
+    }
 
-    return list;
-  }
+    // single symbol
+    if ( symbols.indexOf( "|" ) === -1 ) {
+      return true;
+    }
 
-  _numberify( x ) {
-    // if number is not defined or is invalid, assign the infinity
-    // value to make sure the item stay at the bottom
-    return Number.isInteger( x ) ? x : Number.POSITIVE_INFINITY;
+    return symbols.split( "|" ).indexOf( "" ) === -1;
   }
 
   _isValidType( type ) {
@@ -342,12 +237,11 @@ class RiseDataFinancial extends PolymerElement {
         this.financialErrorMessage = null;
 
         timeOut.run(() => {
-          this._getData(
+          this._getData( this.symbols,
             {
               type: this.type,
               duration: this.duration
             },
-            this._instruments,
             this.instrumentFields
           );
         }, 1000 );
@@ -373,16 +267,7 @@ class RiseDataFinancial extends PolymerElement {
       this._log( "error", RiseDataFinancial.EVENT_DATA_ERROR, { error: detail.errors[ 0 ] });
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_ERROR, detail.errors[ 0 ]);
     } else {
-      let instruments = this._instruments,
-        data = {};
-
-      if ( this.symbol && !this._invalidSymbol ) {
-        instruments = this._instruments.filter(( obj ) => {
-          return obj.symbol === this.symbol;
-        });
-      }
-
-      data = { instruments: instruments };
+      let data = {};
 
       if ( detail.hasOwnProperty( "table" ) && detail.table ) {
         data.data = detail.table;
@@ -404,8 +289,6 @@ class RiseDataFinancial extends PolymerElement {
   }
 
   _checkFinancialErrors( data ) {
-    const symbols = data.instruments.map(({ symbol }) => symbol ).join( "|" );
-
     Object.keys( RiseDataFinancial.ERROR_EVENTS )
       .filter( status => !this._eventsAlreadyLogged.includes( status ))
       .forEach( status => {
@@ -414,30 +297,12 @@ class RiseDataFinancial extends PolymerElement {
         )) {
           const errorMessage = RiseDataFinancial.ERROR_EVENTS[ status ];
 
-          this._log( "error", `${ errorMessage } ${ symbols }` );
+          this._log( "error", `${ errorMessage }`, { symbols: this.symbols });
 
           // due to refresh every 60 seconds, prevent logging same error event to BQ every time
           this._eventsAlreadyLogged.push( status );
         }
       });
-  }
-
-  _getSymbols( instruments ) {
-    const symbols = instruments.map(({ symbol }) => symbol );
-
-    if ( this.symbol ) {
-      if ( symbols.includes( this.symbol )) {
-        return this.symbol;
-      } else {
-        this._invalidSymbol = true;
-        this._log( "warning", RiseDataFinancial.EVENT_INVALID_SYMBOL, this.symbol );
-        this._sendFinancialEvent( RiseDataFinancial.EVENT_INVALID_SYMBOL, this.symbol );
-
-        return "";
-      }
-    }
-
-    return symbols.join( "|" );
   }
 
   _getQueryString( fields ) {
@@ -460,7 +325,7 @@ class RiseDataFinancial extends PolymerElement {
   }
 
   _getKey() {
-    return `risedatafinancial_${this.type}_${this.displayId}_${this.financialList}_${this.duration}_${this.symbol}`;
+    return `risedatafinancial_${this.type}_${this.displayId}_${this.symbols}_${this.duration}`;
   }
 
   _getCallbackValue( key ) {
@@ -475,42 +340,37 @@ class RiseDataFinancial extends PolymerElement {
     return `${url}?${queryParams}`;
   }
 
-  _getData( props, instruments, fields ) {
-    if ( !this._isValidType( props.type ) || !this._isValidDuration( props.duration, props.type )) {
+  _getData( symbols, props, fields ) {
+    if ( !this._isValidSymbols( symbols ) || !this._isValidType( props.type ) || !this._isValidDuration( props.duration, props.type )) {
       return;
     }
 
-    const symbols = this._getSymbols( instruments );
+    // set callback with the same value it was set on the responseHandler of the tqx parameter
+    const financial = this.$.financial,
+      callbackValue = this._getCallbackValue( this._getKey());
 
-    if ( !this._invalidSymbol ) {
-      // set callback with the same value it was set on the responseHandler of the tqx parameter
-      const financial = this.$.financial,
-        callbackValue = this._getCallbackValue( this._getKey());
+    let params = this._getParams( fields, symbols, callbackValue ),
+      url;
 
-      let params = this._getParams( fields, symbols, callbackValue ),
-        url;
-
-      if ( props.type === "realtime" ) {
-        url = this._getSerializedUrl( financialServerConfig.realTimeURL, params );
-      } else {
-        params.kind = props.duration;
-        url = this._getSerializedUrl( financialServerConfig.historicalURL, params );
-      }
-
-      financial.callbackName = callbackValue;
-      financial.libraryUrl = url;
+    if ( props.type === "realtime" ) {
+      url = this._getSerializedUrl( financialServerConfig.realTimeURL, params );
+    } else {
+      params.kind = props.duration;
+      url = this._getSerializedUrl( financialServerConfig.historicalURL, params );
     }
+
+    financial.callbackName = callbackValue;
+    financial.libraryUrl = url;
   }
 
   _refresh() {
     if ( !this._refreshDebounceJob || !this._refreshDebounceJob.isActive()) {
       this._refreshDebounceJob = Debouncer.debounce( this._refreshDebounceJob, timeOut.after( 60000 ), () => {
-        this._getData(
+        this._getData( this.symbols,
           {
             type: this.type,
             duration: this.duration,
           },
-          this._instruments,
           this.instrumentFields
         );
       });
@@ -518,26 +378,18 @@ class RiseDataFinancial extends PolymerElement {
   }
 
   _handleStart() {
-    if ( !this._instrumentsReceived ) {
-      return;
-    }
-
-    if ( this._initialStart || this._getDataPending ) {
+    if ( this._initialStart ) {
       this._initialStart = false;
-      this._getDataPending = false;
 
       // configure and execute request
-      this._getData(
+      this._getData( this.symbols,
         {
           type: this.type,
           duration: this.duration,
         },
-        this._instruments,
         this.instrumentFields
       );
-
     }
-
   }
 
 }

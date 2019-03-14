@@ -7,7 +7,6 @@
 
   <script src="../../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
   <script src="../../node_modules/wct-browser-legacy/browser.js"></script>
-  <script src="../mocks/firebase.js"></script>
   <script type="text/javascript">
     RisePlayerConfiguration = {
       isConfigured: () => false,
@@ -25,7 +24,7 @@
 <body>
 <test-fixture id="test-block">
   <template>
-    <rise-data-financial financial-list="Stocks" instrument-fields='["lastPrice", "netChange"]'></rise-data-financial>
+    <rise-data-financial symbols="AA.N|.DJI" instrument-fields='["lastPrice", "netChange"]'></rise-data-financial>
   </template>
 </test-fixture>
 

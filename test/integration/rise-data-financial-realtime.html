@@ -7,7 +7,6 @@
 
   <script src="../../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
   <script src="../../node_modules/wct-browser-legacy/browser.js"></script>
-  <script src="../mocks/firebase.js"></script>
   <script type="text/javascript">
     RisePlayerConfiguration = {
       isConfigured: () => true
@@ -19,7 +18,7 @@
 <body>
 <test-fixture id="test-block">
   <template>
-    <rise-data-financial financial-list="Stocks" instrument-fields='["lastPrice", "netChange"]'></rise-data-financial>
+    <rise-data-financial symbols="AA.N|.DJI" instrument-fields='["lastPrice", "netChange"]'></rise-data-financial>
   </template>
 </test-fixture>
 
@@ -99,12 +98,20 @@
 
     } );
 
-    suite( "financial list id change", () => {
+    suite( "attribute value change", () => {
 
-      test( "should call _reset()", () => {
+      test( "should call _reset() from symbols change", () => {
         let changedStub = sinon.stub( element, "_reset" );
 
-        element.setAttribute( "financial-list", "abc123" );
+        element.setAttribute( "symbols", ".abc|.def" );
+        assert.isTrue( changedStub.calledOnce );
+        changedStub.restore();
+      } );
+
+      test( "should call _reset() from instrumentFields change", () => {
+        let changedStub = sinon.stub( element, "_reset" );
+
+        element.setAttribute( "instrument-fields", '["test1"]' );
         assert.isTrue( changedStub.calledOnce );
         changedStub.restore();
       } );
