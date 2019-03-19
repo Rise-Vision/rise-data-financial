@@ -35,6 +35,8 @@
 
   <rise-data-financial
     id="rise-data-financial-01"
+    label="Stocks"
+    category="stocks"
     symbols="C.N|IBM.N|KO|WMT.N"
     instrument-fields='["name", "lastPrice", "netChange", "percentChange"]'>
   </rise-data-financial>
@@ -56,14 +58,8 @@
         console.log( "request error", evt.detail );
       } );
 
-      // Start the component once it's configured;
-      // but if it's already configured the listener won't work,
-      // so we directly send the request also.
-      // In the future, we may encapsulate the following lines in a helper function.
-      financial01.addEventListener('configured', () =>
-        financial01.dispatchEvent( new CustomEvent( "start" ) )
-      );
-      financial01.dispatchEvent( new CustomEvent( "start" ) );
+      // Uncomment the following line if the financial component is marked as non-editable
+      // RisePlayerConfiguration.Helpers.sendStartEvent( financial01 );
     }
 
     window.addEventListener( "rise-components-ready", configureComponents );
