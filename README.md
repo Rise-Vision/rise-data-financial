@@ -32,13 +32,13 @@ The below illustrates simple usage of the component and listening to the `rise-c
         	console.log( "request error", evt.detail );
       	} );
 
-      	// Start the component once it's configured, but if it's already 
-      	// configured the listener won't work, so we directly send the 
+      	// Start the component once it's configured, but if it's already
+      	// configured the listener won't work, so we directly send the
       	// request also.
       	financial01.addEventListener('configured', () =>
         	financial01.dispatchEvent( new CustomEvent( "start" ) )
       	);
-      	
+
       	financial01.dispatchEvent( new CustomEvent( "start" ) );
       }
 
@@ -112,7 +112,7 @@ This attribute holds a literal value, for example:
   </rise-data-financial>
 ```
 
-If it's not set, the label for the component defaults to "Financial", which is applied via the    [generate_blueprint.js](https://github.com/Rise-Vision/html-template-library/blob/master/generate_blueprint.js) file for a HTML Template build/deployment. 
+If it's not set, the label for the component defaults to "Financial", which is applied via the    [generate_blueprint.js](https://github.com/Rise-Vision/html-template-library/blob/master/generate_blueprint.js) file for a HTML Template build/deployment.
 
 ### Attributes
 
@@ -131,7 +131,7 @@ This component receives the following list of attributes:
 
 The component sends the following events:
 
-- **_configured_**: The component has initialized what it requires to and is ready to handle a _start_ event. 
+- **_configured_**: The component has initialized what it requires to and is ready to handle a _start_ event.
 - **_data-update_**: Data has been retrieved and the data object is provided in `event.detail`
 - **_data-error_**: The financial server responded with a Error and the object is provided in `event.detail`
 - **_request-error_**: There was a problem making the JSONP request to Financial server and the message object is provided in `event.detail`.
@@ -140,7 +140,17 @@ The component is listening for the following events:
 
 - **_start_**: This event will initiate getting data from Financial server. It can be dispatched on the component when _configured_ event has been fired as that event indicates the component has initialized what it requires to and is ready to make a request to the Financial server to retrieve data.
 
+### Events
 
+The component may log the following errors:
+
+- **_request-error_**: There was a problem making the JSONP request to Financial server.
+- **_data-error_**: The financial server responded with an error.
+- **_Rise is not permissioned to show the instrument_**: Shown when financial server returned a 'N/P' status for an instrument / symbol. The event details will include the component symbols property.
+- **_Instrument is unavailable, invalid or unknown_**: Shown when financial server returned a 'N/A' status for an instrument / symbol. The event details will include the component symbols property.
+- **_Display is not permissioned to show the instrument_**: Shown when financial server returned a 'S/P' status for an instrument / symbol. The event details will include the component symbols property.
+
+In every case, examine event-details entry and the other event fields for more information about the problem.
 
 ## Built With
 - [Polymer 3](https://www.polymer-project.org/)
