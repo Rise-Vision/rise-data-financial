@@ -140,7 +140,7 @@ The component is listening for the following events:
 
 - **_start_**: This event will initiate getting data from Financial server. It can be dispatched on the component when _configured_ event has been fired as that event indicates the component has initialized what it requires to and is ready to make a request to the Financial server to retrieve data.
 
-### Events
+### Errors
 
 The component may log the following errors:
 
