@@ -36,6 +36,7 @@
   <body>
     <rise-data-financial
       id="rise-data-financial-01"
+      non-editable
       label="Stocks"
       category="stocks"
       symbols="C.N|IBM.N|KO|WMT.N"
@@ -62,6 +63,8 @@
         financial01.addEventListener( "request-error", ( evt ) => {
           console.log( "request error", evt.detail );
         } );
+
+        RisePlayerConfiguration.Helpers.sendStartEvent( financial01 );
       }
 
       window.addEventListener( "rise-components-ready", configureComponents );
