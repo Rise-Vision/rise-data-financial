@@ -111,7 +111,6 @@ class RiseDataFinancial extends PolymerElement {
     this._initialStart = true;
     this._logDataUpdate = true;
     this._financialRequestRetryCount = 0;
-    this._eventsAlreadyLogged = [];
   }
 
   ready() {
@@ -159,16 +158,18 @@ class RiseDataFinancial extends PolymerElement {
     };
   }
 
-  _log( type, event, details = null ) {
+  _log( type, event, details = null, additionalFields ) {
+    const componentData = this._getComponentData();
+
     switch ( type ) {
     case "info":
-      RisePlayerConfiguration.Logger.info( this._getComponentData(), event, details );
+      RisePlayerConfiguration.Logger.info( componentData, event, details, additionalFields );
       break;
     case "warning":
-      RisePlayerConfiguration.Logger.warning( this._getComponentData(), event, details );
+      RisePlayerConfiguration.Logger.warning( componentData, event, details, additionalFields );
       break;
     case "error":
-      RisePlayerConfiguration.Logger.error( this._getComponentData(), event, details );
+      RisePlayerConfiguration.Logger.error( componentData, event, details, additionalFields );
       break;
     }
   }
@@ -290,17 +291,17 @@ class RiseDataFinancial extends PolymerElement {
 
   _checkFinancialErrors( data ) {
     Object.keys( RiseDataFinancial.ERROR_EVENTS )
-      .filter( status => !this._eventsAlreadyLogged.includes( status ))
       .forEach( status => {
         if ( data.data && data.data.rows && data.data.rows.some( row =>
           row.c && row.c.some( cell => cell.v === status )
         )) {
           const errorMessage = RiseDataFinancial.ERROR_EVENTS[ status ];
 
-          this._log( "error", `${ errorMessage }`, { symbols: this.symbols });
-
-          // due to refresh every 60 seconds, prevent logging same error event to BQ every time
-          this._eventsAlreadyLogged.push( status );
+          this._log( "error", `${ errorMessage }`, {
+            symbols: this.symbols
+          }, {
+            _logAtMostOncePerDay: true
+          });
         }
       });
   }

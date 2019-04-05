@@ -507,7 +507,6 @@
         element._checkFinancialErrors( sampleData );
 
         assert.isFalse( stub.called );
-        assert.deepEqual( element._eventsAlreadyLogged, [] );
 
         stub.restore();
       } );
@@ -524,8 +523,6 @@
           "Rise is not permissioned to show the instrument",
           { symbols: element.symbols }
         ));
-
-        assert.deepEqual( element._eventsAlreadyLogged, ["N/P"] );
 
         stub.restore();
       } );
@@ -548,24 +545,6 @@
           "Display is not permissioned to show the instrument",
           { symbols: element.symbols }
         ));
-
-        assert.deepEqual( element._eventsAlreadyLogged, ["N/P", "S/P"] );
-
-        stub.restore();
-      } );
-
-      test( "should not log errors if they were already logged", () => {
-        const stub = sinon.stub( element, "_log" );
-
-        sampleData.data.rows[0].c[0].v = "N/P";
-        sampleData.data.rows[1].c[0].v = "S/P";
-
-        element._eventsAlreadyLogged = ["N/P", "S/P"];
-
-        element._checkFinancialErrors( sampleData );
-
-        assert.isFalse( stub.called );
-        assert.deepEqual( element._eventsAlreadyLogged, ["N/P", "S/P"] );
 
         stub.restore();
       } );
