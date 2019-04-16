@@ -168,7 +168,7 @@ Execute the following commands in Terminal:
 
 ```
 npm install
-npm install -g polymer-cli
+npm install -g polymer-cli@1.9.7
 npm run build
 ```
 
