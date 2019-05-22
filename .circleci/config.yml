@@ -1,19 +1,9 @@
 version: 2.1
 
 jobs:
-  preconditions:
+  install:
     docker: &BUILDIMAGE
       - image: jenkinsrise/cci-v2-components:0.0.4
-    steps:
-      - run: |
-          if [ -z "$COMPONENT_NAME" ]
-          then
-            echo Component name must be specified as an environment variable.
-            exit 1
-          fi
-
-  install:
-    docker: *BUILDIMAGE
     steps:
       - checkout
       - restore_cache:
@@ -55,6 +45,7 @@ jobs:
     docker: &GCSIMAGE
       - image: jenkinsrise/cci-v2-launcher-electron:0.0.6
         environment:
+          COMPONENT_NAME: rise-data-financial
           WIDGETS_BASE: gs://widgets.risevision.com
     steps:
       - run: mkdir -p ~/.ssh
@@ -139,7 +130,7 @@ jobs:
           echo Deploying << parameters.stage >> electron e2e page for $COMPONENT_NAME
           gsutil rsync -d -r base $TARGET
           gsutil -m setmeta -r -h "Cache-Control:private, max-age=0" $TARGET
-          gsutil acl -r ch -u AllUsers:R $TARGET
+          gsutil -m acl -r ch -u AllUsers:R $TARGET
 
   test-e2e-electron:
     parameters:
@@ -206,27 +197,22 @@ jobs:
 workflows:
   workflow1:
     jobs:
-      - preconditions
-      - install:
-          requires:
-            - preconditions
+      - install
       - gcloud-setup:
-          requires:
-            - preconditions
           filters:
             branches:
               only:
                 - /^(stage|staging)[/].*/
                 - master
+                - /^e2e[/].*/
                 - build/stable
       - generate-version:
-          requires:
-            - preconditions
           filters:
             branches:
               only:
                 - /^(stage|staging)[/].*/
                 - master
+                - /^e2e[/].*/
                 - build/stable
       - test:
           requires:
@@ -240,6 +226,7 @@ workflows:
               only:
                 - /^(stage|staging)[/].*/
                 - master
+                - /^e2e[/].*/
                 - build/stable
       - build-e2e-page:
           stage: beta
@@ -250,6 +237,7 @@ workflows:
             branches:
               only:
                 - master
+                - /^e2e[/].*/
       - build-e2e-page:
           stage: stable
           name: build-e2e-page-stable
@@ -268,6 +256,7 @@ workflows:
               only:
                 - /^(stage|staging)[/].*/
                 - master
+                - /^e2e[/].*/
                 - build/stable
       - deploy-e2e-page:
           stage: beta
@@ -279,6 +268,7 @@ workflows:
             branches:
               only:
                 - master
+                - /^e2e[/].*/
       - deploy-e2e-page:
           stage: stable
           name: deploy-e2e-page-stable
@@ -300,6 +290,7 @@ workflows:
             branches:
               only:
                 - master
+                - /^e2e[/].*/
       - test-e2e-electron:
           displayId: WHQZ8NK8KFSM
           installerPath: /
