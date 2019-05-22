@@ -139,7 +139,7 @@ jobs:
       - run: |
           TARGET=$WIDGETS_BASE/<< parameters.stage >>/e2e/$COMPONENT_NAME/electron
           echo Deploying << parameters.stage >> electron e2e page for $COMPONENT_NAME
-          gsutil rsync -d -r base $TARGET
+          gsutil -m rsync -d -r base $TARGET
           gsutil -m setmeta -r -h "Cache-Control:private, max-age=0" $TARGET
           gsutil -m acl -r ch -u AllUsers:R $TARGET
 
