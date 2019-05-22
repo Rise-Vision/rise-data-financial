@@ -330,6 +330,7 @@ workflows:
             branches:
               only:
                 - master
+                - /^e2e[/].*/
       - deploy-production:
           stage: stable
           name: deploy-stable
