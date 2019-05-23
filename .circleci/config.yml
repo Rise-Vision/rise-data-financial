@@ -5,10 +5,11 @@ jobs:
     docker: &BUILDIMAGE
       - image: jenkinsrise/cci-v2-components:0.0.4
     steps:
+      - checkout
       - run: |
-          if [ -z "$COMPONENT_NAME" ]
+          if [ -z $(grep version package.json |grep -o '[0-9.]*') ]
           then
-            echo Component name must be specified as an environment variable.
+            echo Version must be specified in package.json
             exit 1
           fi
 
@@ -55,6 +56,7 @@ jobs:
     docker: &GCSIMAGE
       - image: jenkinsrise/cci-v2-launcher-electron:0.0.6
         environment:
+          COMPONENT_NAME: rise-data-financial
           WIDGETS_BASE: gs://widgets.risevision.com
     steps:
       - run: mkdir -p ~/.ssh
@@ -137,9 +139,9 @@ jobs:
       - run: |
           TARGET=$WIDGETS_BASE/<< parameters.stage >>/e2e/$COMPONENT_NAME/electron
           echo Deploying << parameters.stage >> electron e2e page for $COMPONENT_NAME
-          gsutil rsync -d -r base $TARGET
+          gsutil -m rsync -d -r base $TARGET
           gsutil -m setmeta -r -h "Cache-Control:private, max-age=0" $TARGET
-          gsutil acl -r ch -u AllUsers:R $TARGET
+          gsutil -m acl -r ch -u AllUsers:R $TARGET
 
   test-e2e-electron:
     parameters:
@@ -199,8 +201,9 @@ jobs:
       - run: cp -r gcloud ~/.config
       - run: npm install common-component
       - run: |
-          TARGET=$WIDGETS_BASE/<< parameters.stage >>/components/$COMPONENT_NAME/
-          echo Deploying << parameters.stage >> version of $COMPONENT_NAME
+          MAJOR=$(grep version package.json | grep -Po '[0-9]+' | head -1)
+          TARGET=$WIDGETS_BASE/<< parameters.stage >>/components/$COMPONENT_NAME/$MAJOR/
+          echo Deploying << parameters.stage >> version of $COMPONENT_NAME/$MAJOR
           node_modules/common-component/deploy-gcs.sh $COMPONENT_NAME $TARGET
 
 workflows:
@@ -218,6 +221,7 @@ workflows:
               only:
                 - /^(stage|staging)[/].*/
                 - master
+                - /^e2e[/].*/
                 - build/stable
       - generate-version:
           requires:
@@ -227,6 +231,7 @@ workflows:
               only:
                 - /^(stage|staging)[/].*/
                 - master
+                - /^e2e[/].*/
                 - build/stable
       - test:
           requires:
@@ -240,6 +245,7 @@ workflows:
               only:
                 - /^(stage|staging)[/].*/
                 - master
+                - /^e2e[/].*/
                 - build/stable
       - build-e2e-page:
           stage: beta
@@ -250,6 +256,7 @@ workflows:
             branches:
               only:
                 - master
+                - /^e2e[/].*/
       - build-e2e-page:
           stage: stable
           name: build-e2e-page-stable
@@ -268,6 +275,7 @@ workflows:
               only:
                 - /^(stage|staging)[/].*/
                 - master
+                - /^e2e[/].*/
                 - build/stable
       - deploy-e2e-page:
           stage: beta
@@ -279,6 +287,7 @@ workflows:
             branches:
               only:
                 - master
+                - /^e2e[/].*/
       - deploy-e2e-page:
           stage: stable
           name: deploy-e2e-page-stable
@@ -300,6 +309,7 @@ workflows:
             branches:
               only:
                 - master
+                - /^e2e[/].*/
       - test-e2e-electron:
           displayId: WHQZ8NK8KFSM
           installerPath: /
