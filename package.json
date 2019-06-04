@@ -32,7 +32,10 @@
   "devDependencies": {
     "eslint": "^5.6.1",
     "eslint-config-idiomatic": "^4.0.0",
-    "lodash": "^3.10.1",
-    "wct-browser-legacy": "^1.0.1"
+    "@polymer/test-fixture": "^4.0.2",
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0",
+    "sinon": "^7.3.2",
+    "wct-mocha": "^1.0.0"
   }
 }
