@@ -4,7 +4,7 @@
   "description": "Web component for retrieving financial data on a Rise Vision Template page",
   "scripts": {
     "build": "./create_config.sh prod && polymer build && ./node_modules/common-component/extract-source.sh rise-data-financial",
-    "test": "eslint . && ./create_config.sh test && polymer test --npm"
+    "test": "eslint . && ./create_config.sh test && polymer test"
   },
   "repository": {
     "type": "git",
