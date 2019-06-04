@@ -139,7 +139,7 @@
         data: realTimeData.table,
       } );
 
-      RisePlayerConfiguration.Logger.info.reset();
+      RisePlayerConfiguration.Logger.info.resetHistory();
       element._handleData( { detail: [ realTimeData ] } );
 
       // should only log data-update event once
