@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   preconditions:
     docker: &BUILDIMAGE
-      - image: jenkinsrise/cci-v2-components:0.0.4
+      - image: jenkinsrise/cci-v2-components:0.0.5
     steps:
       - checkout
       - run: |
