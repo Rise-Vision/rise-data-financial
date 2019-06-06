@@ -34,6 +34,7 @@
     <style>
        h1 {
          font-size: 144px;
+         background-color: green;
          color: red;
        }
     </style>
@@ -57,7 +58,8 @@
 
         financial01.addEventListener( "data-update", ( evt ) => {
           console.log( "data update", evt.detail );
-          document.querySelector('#data').innerHTML = "DATA";
+          document.querySelector('#data').innerHTML =
+            "DATA DATA DATA DATA DATA DATA DATA DATA DATA";
         } );
 
         financial01.addEventListener( "data-error", ( evt ) => {
