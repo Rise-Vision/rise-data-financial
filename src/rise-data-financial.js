@@ -343,6 +343,7 @@ class RiseDataFinancial extends PolymerElement {
 
   _getData( symbols, props, fields ) {
     if ( !this._isValidSymbols( symbols ) || !this._isValidType( props.type ) || !this._isValidDuration( props.duration, props.type )) {
+      this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_ERROR, "Invalid attributes." );
       return;
     }
 
