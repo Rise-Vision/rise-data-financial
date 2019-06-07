@@ -32,7 +32,11 @@
       }
     </script>
     <style>
-       h1 { font-size: 72px; }
+       h1 {
+         font-size: 144px;
+         background-color: green;
+         color: red;
+       }
     </style>
   </head>
   <body>
@@ -45,7 +49,6 @@
       instrument-fields='["name", "lastPrice", "netChange", "percentChange", "accumulatedVolume"]'>
     </rise-data-financial>
 
-    <h1 id="instruments"></h1>
     <h1 id="data"></h1>
 
     <script>
@@ -55,7 +58,7 @@
 
         financial01.addEventListener( "data-update", ( evt ) => {
           console.log( "data update", evt.detail );
-          document.querySelector('#data').innerHTML = "DATA";
+          document.querySelector('#data').innerHTML = "DATA DATA DATA";
         } );
 
         financial01.addEventListener( "data-error", ( evt ) => {
