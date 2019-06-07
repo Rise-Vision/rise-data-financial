@@ -137,6 +137,7 @@
       assert.equal( RisePlayerConfiguration.Logger.info.args[ 0 ][ 1 ], "data-update");
       assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 2 ], {
         data: realTimeData.table,
+        "user-config-change": false
       } );
 
       RisePlayerConfiguration.Logger.info.resetHistory();
