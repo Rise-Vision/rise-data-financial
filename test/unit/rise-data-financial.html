@@ -456,6 +456,7 @@
 
         assert.isTrue( element._logDataUpdate );
         assert.isTrue( getDataStub.calledOnce );
+        assert.isTrue( element._logDataUpdate );
 
         _resetStub = sinon.stub( element, "_reset" );
       } );
