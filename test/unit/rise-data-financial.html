@@ -340,6 +340,7 @@
         const listener = ( evt ) => {
           assert.deepEqual( evt.detail, {
             data: realTimeData.table,
+            "user-config-change": false
           } );
 
           element.removeEventListener( "data-update", listener );
@@ -352,7 +353,7 @@
 
       test( "should send 'data-update' event with empty detail when no table provided", ( done ) => {
         const listener = ( evt ) => {
-          assert.deepEqual( evt.detail, {} );
+          assert.deepEqual( evt.detail, { "user-config-change": false } );
 
           element.removeEventListener( "data-update", listener );
           done();
@@ -455,6 +456,7 @@
 
         assert.isTrue( element._logDataUpdate );
         assert.isTrue( getDataStub.calledOnce );
+        assert.isTrue( element._userConfigChange );
 
         _resetStub = sinon.stub( element, "_reset" );
       } );

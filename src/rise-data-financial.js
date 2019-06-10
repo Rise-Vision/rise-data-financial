@@ -111,6 +111,7 @@ class RiseDataFinancial extends PolymerElement {
     this._initialStart = true;
     this._logDataUpdate = true;
     this._financialRequestRetryCount = 0;
+    this._userConfigChange = false;
   }
 
   ready() {
@@ -177,6 +178,7 @@ class RiseDataFinancial extends PolymerElement {
   _reset() {
     if ( !this._initialStart ) {
       this._logDataUpdate = true;
+      this._userConfigChange = true;
       this._refreshDebounceJob && this._refreshDebounceJob.cancel();
 
       this._log( "info", "reset", {
@@ -268,7 +270,11 @@ class RiseDataFinancial extends PolymerElement {
       this._log( "error", RiseDataFinancial.EVENT_DATA_ERROR, { error: detail.errors[ 0 ] });
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_ERROR, detail.errors[ 0 ]);
     } else {
-      let data = {};
+      let data = {
+        "user-config-change": this._userConfigChange
+      };
+
+      this._userConfigChange = false;
 
       if ( detail.hasOwnProperty( "table" ) && detail.table ) {
         data.data = detail.table;
