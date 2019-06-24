@@ -451,10 +451,8 @@
         // need to remove the stub and add back on every test
         _resetStub.restore();
         element._initialStart = false;
-        element._logDataUpdate = false;
         element._reset();
 
-        assert.isTrue( element._logDataUpdate );
         assert.isTrue( getDataStub.calledOnce );
         assert.isTrue( element._userConfigChange );
 
