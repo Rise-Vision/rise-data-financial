@@ -53,11 +53,11 @@
       } );
 
       financial01.addEventListener( "data-error", ( evt ) => {
-        console.log( "data error", evt.detail );
+        console.log( "data error", JSON.stringify(evt.detail) );
       } );
 
       financial01.addEventListener( "request-error", ( evt ) => {
-        console.log( "request error", evt.detail );
+        console.log( "request error", JSON.stringify(evt.detail) );
       } );
 
       // Uncomment the following line if the financial component is marked as non-editable

@@ -104,12 +104,17 @@ class RiseDataFinancial extends PolymerElement {
     };
   }
 
+  static get LOG_AT_MOST_ONCE_PER_DAY() {
+    return {
+      _logAtMostOncePerDay: true
+    };
+  }
+
   constructor() {
     super();
 
     this._refreshDebounceJob = null;
     this._initialStart = true;
-    this._logDataUpdate = true;
     this._financialRequestRetryCount = 0;
     this._userConfigChange = false;
   }
@@ -177,14 +182,13 @@ class RiseDataFinancial extends PolymerElement {
 
   _reset() {
     if ( !this._initialStart ) {
-      this._logDataUpdate = true;
       this._userConfigChange = true;
       this._refreshDebounceJob && this._refreshDebounceJob.cancel();
 
       this._log( "info", "reset", {
         symbols: this.symbols,
         instrumentFields: this.instrumentFields
-      });
+      }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
 
       this._getData( this.symbols,
         {
@@ -280,12 +284,8 @@ class RiseDataFinancial extends PolymerElement {
         data.data = detail.table;
       }
 
-      if ( this._logDataUpdate ) {
-        // due to refresh every 60 seconds, prevent logging data-update event to BQ every time
-        this._logDataUpdate = false;
-
-        this._log( "info", RiseDataFinancial.EVENT_DATA_UPDATE, data );
-      }
+      // Just log these entries once per day, as they may consume lots of log space.
+      this._log( "info", RiseDataFinancial.EVENT_DATA_UPDATE, data, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
 
       this._checkFinancialErrors( data );
 
@@ -305,9 +305,7 @@ class RiseDataFinancial extends PolymerElement {
 
           this._log( "error", `${ errorMessage }`, {
             symbols: this.symbols
-          }, {
-            _logAtMostOncePerDay: true
-          });
+          }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
         }
       });
   }

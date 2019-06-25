@@ -139,12 +139,9 @@
         data: realTimeData.table,
         "user-config-change": false
       } );
-
-      RisePlayerConfiguration.Logger.info.resetHistory();
-      element._handleData( { detail: [ realTimeData ] } );
-
-      // should only log data-update event once
-      assert.isFalse( RisePlayerConfiguration.Logger.info.called );
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 3 ], {
+        _logAtMostOncePerDay: true
+      } );
 
     } );
 
