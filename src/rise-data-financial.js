@@ -1,13 +1,14 @@
 /* eslint-disable no-console */
 
-import { PolymerElement, html } from "@polymer/polymer";
+import { html } from "@polymer/polymer";
+import { RiseElement } from "rise-common-component/src/rise-element.js";
 import { timeOut } from "@polymer/polymer/lib/utils/async.js";
 import { Debouncer } from "@polymer/polymer/lib/utils/debounce.js";
 import { financialServerConfig } from "./rise-data-financial-config.js";
 import { version } from "./rise-data-financial-version.js";
 import "@polymer/iron-jsonp-library/iron-jsonp-library.js";
 
-class RiseDataFinancial extends PolymerElement {
+class RiseDataFinancial extends RiseElement {
 
   static get template() {
     return html`
@@ -77,12 +78,6 @@ class RiseDataFinancial extends PolymerElement {
   }
 
   // Event name constants
-  static get EVENT_CONFIGURED() {
-    return "configured";
-  }
-  static get EVENT_START() {
-    return "start";
-  }
   static get EVENT_DATA_UPDATE() {
     return "data-update";
   }
@@ -91,9 +86,6 @@ class RiseDataFinancial extends PolymerElement {
   }
   static get EVENT_REQUEST_ERROR() {
     return "request-error";
-  }
-  static get EVENT_INVALID_SYMBOL() {
-    return "invalid-symbol";
   }
 
   static get ERROR_EVENTS() {
@@ -113,34 +105,22 @@ class RiseDataFinancial extends PolymerElement {
   constructor() {
     super();
 
+    this._setVersion( version );
+
     this._refreshDebounceJob = null;
     this._initialStart = true;
     this._financialRequestRetryCount = 0;
     this._userConfigChange = false;
   }
 
-  ready() {
-    super.ready();
-
-    if ( RisePlayerConfiguration.isConfigured()) {
-      this._init();
-    } else {
-      const init = () => this._init();
-
-      window.addEventListener( "rise-components-ready", init, { once: true });
-    }
-  }
-
   _init() {
+    super._init();
+
     const display_id = RisePlayerConfiguration.getDisplayId();
 
     if ( display_id && typeof display_id === "string" && display_id !== "DISPLAY_ID" ) {
       this._setDisplayId( display_id );
     }
-
-    this.addEventListener( RiseDataFinancial.EVENT_START, this._handleStart, { once: true });
-
-    this._sendFinancialEvent( RiseDataFinancial.EVENT_CONFIGURED );
   }
 
   connectedCallback() {
@@ -156,28 +136,8 @@ class RiseDataFinancial extends PolymerElement {
     this.$.financial.removeEventListener( "financial-data", this._handleData );
   }
 
-  _getComponentData() {
-    return {
-      name: "rise-data-financial",
-      id: this.id,
-      version: version
-    };
-  }
-
   _log( type, event, details = null, additionalFields ) {
-    const componentData = this._getComponentData();
-
-    switch ( type ) {
-    case "info":
-      RisePlayerConfiguration.Logger.info( componentData, event, details, additionalFields );
-      break;
-    case "warning":
-      RisePlayerConfiguration.Logger.warning( componentData, event, details, additionalFields );
-      break;
-    case "error":
-      RisePlayerConfiguration.Logger.error( componentData, event, details, additionalFields );
-      break;
-    }
+    super.log( type, event, details, additionalFields );
   }
 
   _reset() {
@@ -201,11 +161,18 @@ class RiseDataFinancial extends PolymerElement {
   }
 
   _sendFinancialEvent( eventName, detail = {}) {
-    const event = new CustomEvent( eventName, {
-      bubbles: true, composed: true, detail
-    });
+    super._sendEvent( eventName, detail );
 
-    this.dispatchEvent( event );
+    switch ( eventName ) {
+    case RiseDataFinancial.EVENT_REQUEST_ERROR:
+    case RiseDataFinancial.EVENT_DATA_ERROR:
+      super._setUptimeError( true );
+      break;
+    case RiseDataFinancial.EVENT_DATA_UPDATE:
+      super._setUptimeError( false );
+      break;
+    default:
+    }
   }
 
   _isValidSymbols( symbols ) {
