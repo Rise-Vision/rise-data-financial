@@ -527,7 +527,7 @@
         stub.restore();
       } );
 
-      test( "should log N/P error if it's present in the data", () => {
+      test( "should log N/P warning if it's present in the data", () => {
         const stub = sinon.stub( element, "_log" );
 
         sampleData.data.rows[0].c[0].v = "N/P";
@@ -535,7 +535,7 @@
         element._checkFinancialErrors( sampleData );
 
         assert.isTrue( stub.calledWith(
-          "error",
+          "warning",
           "Rise is not permissioned to show the instrument",
           { symbols: element.symbols }
         ));
@@ -552,13 +552,29 @@
         element._checkFinancialErrors( sampleData );
 
         assert.isTrue( stub.calledWith(
-          "error",
+          "warning",
           "Rise is not permissioned to show the instrument",
           { symbols: element.symbols }
         ));
         assert.isTrue( stub.calledWith(
           "error",
           "Display is not permissioned to show the instrument",
+          { symbols: element.symbols }
+        ));
+
+        stub.restore();
+      } );
+
+      test( "should log N/A error if it's present in the data", () => {
+        const stub = sinon.stub( element, "_log" );
+
+        sampleData.data.rows[0].c[0].v = "N/A";
+
+        element._checkFinancialErrors( sampleData );
+
+        assert.isTrue( stub.calledWith(
+          "error",
+          "Instrument is unavailable, invalid or unknown",
           { symbols: element.symbols }
         ));
 

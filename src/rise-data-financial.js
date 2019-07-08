@@ -90,9 +90,18 @@ class RiseDataFinancial extends RiseElement {
 
   static get ERROR_EVENTS() {
     return {
-      "N/P": "Rise is not permissioned to show the instrument",
-      "N/A": "Instrument is unavailable, invalid or unknown",
-      "S/P": "Display is not permissioned to show the instrument"
+      "N/P": {
+        message: "Rise is not permissioned to show the instrument",
+        level: "warning"
+      },
+      "N/A": {
+        message: "Instrument is unavailable, invalid or unknown",
+        level: "error"
+      },
+      "S/P": {
+        message: "Display is not permissioned to show the instrument",
+        level: "error"
+      }
     };
   }
 
@@ -268,9 +277,9 @@ class RiseDataFinancial extends RiseElement {
         if ( data.data && data.data.rows && data.data.rows.some( row =>
           row.c && row.c.some( cell => cell.v === status )
         )) {
-          const errorMessage = RiseDataFinancial.ERROR_EVENTS[ status ];
+          const error = RiseDataFinancial.ERROR_EVENTS[ status ];
 
-          this._log( "error", `${ errorMessage }`, {
+          this._log( error.level, `${ error.message }`, {
             symbols: this.symbols
           }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
         }
