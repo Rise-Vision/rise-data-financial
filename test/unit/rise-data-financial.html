@@ -66,7 +66,7 @@
       RisePlayerConfiguration.Logger = {
         info: () => {},
         warning: () => {},
-        error: () => {}
+        error: sinon.spy()
       };
 
       element = fixture("test-block");
@@ -262,12 +262,14 @@
         element._getData( 123, { type: "historical", duration: "1M" }, [] );
 
         assert.isFalse( stub.called );
+        assert.isTrue( RisePlayerConfiguration.Logger.error.calledOnce );
         assert.isTrue( element._sendFinancialEvent.calledOnce );
         assert.deepEqual( element._sendFinancialEvent.getCall(0).args, ["data-error", "Invalid attributes."] );
 
         element._getData( ["test"], { type: "historical", duration: "1M" }, [] );
 
         assert.isFalse( stub.called );
+        assert.isTrue( RisePlayerConfiguration.Logger.error.calledTwice );
         assert.isTrue( element._sendFinancialEvent.calledTwice );
         assert.deepEqual( element._sendFinancialEvent.getCall(1).args, ["data-error", "Invalid attributes."] );
 
@@ -280,6 +282,7 @@
         element._getData( element.symbols, { type: "invalid", duration: "1M" }, [] );
 
         assert.isFalse( stub.called );
+        assert.isTrue( RisePlayerConfiguration.Logger.error.calledOnce );
         assert.isTrue( element._sendFinancialEvent.calledOnce );
         assert.deepEqual( element._sendFinancialEvent.getCall(0).args, ["data-error", "Invalid attributes."] );
 
@@ -292,6 +295,7 @@
         element._getData( element.symbols, { type: "historical", duration: "invalid" }, [] );
 
         assert.isFalse( stub.called );
+        assert.isTrue( RisePlayerConfiguration.Logger.error.calledOnce );
         assert.isTrue( element._sendFinancialEvent.calledOnce );
         assert.deepEqual( element._sendFinancialEvent.getCall(0).args, ["data-error", "Invalid attributes."] );
 
@@ -301,6 +305,7 @@
       test( "should not raise data-error if valid attributes are provided", () => {
         element._getData( element.symbols, props, [] );
 
+        assert.isFalse( RisePlayerConfiguration.Logger.error.called );
         assert.isFalse( element._sendFinancialEvent.called );
       } );
 
