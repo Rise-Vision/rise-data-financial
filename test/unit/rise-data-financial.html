@@ -273,6 +273,14 @@
         assert.isTrue( element._sendFinancialEvent.calledTwice );
         assert.deepEqual( element._sendFinancialEvent.getCall(1).args, ["data-error", "Invalid attributes."] );
 
+        element._getData( "", { type: "historical", duration: "1M" }, [] );
+
+        assert.isFalse( stub.called );
+        // no log should occur, count should remain twice
+        assert.isTrue( RisePlayerConfiguration.Logger.error.calledTwice );
+        assert.isTrue( element._sendFinancialEvent.calledThrice );
+        assert.deepEqual( element._sendFinancialEvent.getCall(1).args, ["data-error", "Invalid attributes."] );
+
         stub.restore();
       } );
 
