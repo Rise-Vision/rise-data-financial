@@ -322,9 +322,14 @@ class RiseDataFinancial extends RiseElement {
   }
 
   _getData( symbols, props, fields ) {
-    if ( !this._isValidSymbols( symbols ) || !this._isValidType( props.type ) || !this._isValidDuration( props.duration, props.type )) {
-      this._log( "error", "Invalid attributes", { symbols, props }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
+    if ( !this._isValidType( props.type ) || !this._isValidDuration( props.duration, props.type )) {
+      this._log( "error", "Invalid attributes", { props }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
 
+      this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_ERROR, "Invalid attributes." );
+      return;
+    }
+
+    if ( !this._isValidSymbols( symbols )) {
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_ERROR, "Invalid attributes." );
       return;
     }

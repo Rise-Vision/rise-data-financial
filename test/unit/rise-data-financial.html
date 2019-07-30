@@ -262,14 +262,12 @@
         element._getData( 123, { type: "historical", duration: "1M" }, [] );
 
         assert.isFalse( stub.called );
-        assert.isTrue( RisePlayerConfiguration.Logger.error.calledOnce );
         assert.isTrue( element._sendFinancialEvent.calledOnce );
         assert.deepEqual( element._sendFinancialEvent.getCall(0).args, ["data-error", "Invalid attributes."] );
 
         element._getData( ["test"], { type: "historical", duration: "1M" }, [] );
 
         assert.isFalse( stub.called );
-        assert.isTrue( RisePlayerConfiguration.Logger.error.calledTwice );
         assert.isTrue( element._sendFinancialEvent.calledTwice );
         assert.deepEqual( element._sendFinancialEvent.getCall(1).args, ["data-error", "Invalid attributes."] );
 
