@@ -330,6 +330,10 @@ class RiseDataFinancial extends RiseElement {
     }
 
     if ( !this._isValidSymbols( symbols )) {
+      if ( symbols !== "" ) {
+        this._log( "error", "Invalid attributes", { symbols }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
+      }
+
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_ERROR, "Invalid attributes." );
       return;
     }
