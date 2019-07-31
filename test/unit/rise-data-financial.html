@@ -256,7 +256,7 @@
         sandbox.restore();
       });
 
-      test( "should not execute if component configured with an invalid symbols and should raise data-error", () => {
+      test( "should send empty data if component configured with an invalid symbols", () => {
         const stub = sinon.stub( element, "_getParams" );
 
         element._getData( 123, { type: "historical", duration: "1M" }, [] );
@@ -264,14 +264,20 @@
         assert.isFalse( stub.called );
         assert.isTrue( RisePlayerConfiguration.Logger.error.calledOnce );
         assert.isTrue( element._sendFinancialEvent.calledOnce );
-        assert.deepEqual( element._sendFinancialEvent.getCall(0).args, ["data-error", "Invalid attributes."] );
+        assert.deepEqual( element._sendFinancialEvent.getCall(0).args, [ "data-update", {
+          "user-config-change": false,
+          "data": { rows: null }
+        }]);
 
         element._getData( ["test"], { type: "historical", duration: "1M" }, [] );
 
         assert.isFalse( stub.called );
         assert.isTrue( RisePlayerConfiguration.Logger.error.calledTwice );
         assert.isTrue( element._sendFinancialEvent.calledTwice );
-        assert.deepEqual( element._sendFinancialEvent.getCall(1).args, ["data-error", "Invalid attributes."] );
+        assert.deepEqual( element._sendFinancialEvent.getCall(1).args, [ "data-update", {
+          "user-config-change": false,
+          "data": { rows: null }
+        }]);
 
         element._getData( "", { type: "historical", duration: "1M" }, [] );
 
@@ -279,12 +285,15 @@
         // no log should occur, count should remain twice
         assert.isTrue( RisePlayerConfiguration.Logger.error.calledTwice );
         assert.isTrue( element._sendFinancialEvent.calledThrice );
-        assert.deepEqual( element._sendFinancialEvent.getCall(1).args, ["data-error", "Invalid attributes."] );
+        assert.deepEqual( element._sendFinancialEvent.getCall(2).args, [ "data-update", {
+          "user-config-change": false,
+          "data": { rows: null }
+        }]);
 
         stub.restore();
       } );
 
-      test( "should not execute if component configured with an invalid type and should raise data-error", () => {
+      test( "should send empty data if component configured with an invalid type and should log error", () => {
         const stub = sinon.stub( element, "_getParams" );
 
         element._getData( element.symbols, { type: "invalid", duration: "1M" }, [] );
@@ -292,12 +301,15 @@
         assert.isFalse( stub.called );
         assert.isTrue( RisePlayerConfiguration.Logger.error.calledOnce );
         assert.isTrue( element._sendFinancialEvent.calledOnce );
-        assert.deepEqual( element._sendFinancialEvent.getCall(0).args, ["data-error", "Invalid attributes."] );
+        assert.deepEqual( element._sendFinancialEvent.getCall(0).args, [ "data-update", {
+          "user-config-change": false,
+          "data": { rows: null }
+        }]);
 
         stub.restore();
       } );
 
-      test( "should not execute if component configured for historical with an invalid duration and should raise data-error", () => {
+      test( "should send empty data if component configured for historical with an invalid duration and should log error", () => {
         const stub = sinon.stub( element, "_getParams" );
 
         element._getData( element.symbols, { type: "historical", duration: "invalid" }, [] );
@@ -305,12 +317,15 @@
         assert.isFalse( stub.called );
         assert.isTrue( RisePlayerConfiguration.Logger.error.calledOnce );
         assert.isTrue( element._sendFinancialEvent.calledOnce );
-        assert.deepEqual( element._sendFinancialEvent.getCall(0).args, ["data-error", "Invalid attributes."] );
+        assert.deepEqual( element._sendFinancialEvent.getCall(0).args, [ "data-update", {
+          "user-config-change": false,
+          "data": { rows: null }
+        }]);
 
         stub.restore();
       } );
 
-      test( "should not raise data-error if valid attributes are provided", () => {
+      test( "should not log error if valid attributes are provided", () => {
         element._getData( element.symbols, props, [] );
 
         assert.isFalse( RisePlayerConfiguration.Logger.error.called );

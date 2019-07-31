@@ -184,6 +184,13 @@ class RiseDataFinancial extends RiseElement {
     }
   }
 
+  _sendEmptyDataEvent() {
+    this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_UPDATE, {
+      "user-config-change": this._userConfigChange,
+      "data": { rows: null }
+    });
+  }
+
   _isValidSymbols( symbols ) {
     if ( typeof symbols !== "string" || symbols === "" ) {
       return false;
@@ -325,7 +332,9 @@ class RiseDataFinancial extends RiseElement {
     if ( !this._isValidType( props.type ) || !this._isValidDuration( props.duration, props.type )) {
       this._log( "error", "Invalid attributes", { props }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
 
-      this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_ERROR, "Invalid attributes." );
+      this._sendEmptyDataEvent();
+      this._refresh();
+
       return;
     }
 
@@ -334,7 +343,9 @@ class RiseDataFinancial extends RiseElement {
         this._log( "error", "Invalid attributes", { symbols }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
       }
 
-      this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_ERROR, "Invalid attributes." );
+      this._sendEmptyDataEvent();
+      this._refresh();
+
       return;
     }
 
