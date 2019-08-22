@@ -69,6 +69,10 @@
         error: sinon.spy()
       };
 
+      RisePlayerConfiguration.isPreview = () => {
+        return false;
+      };
+
       element = fixture("test-block");
       _resetStub = sinon.stub(element, "_reset");
 
@@ -367,6 +371,7 @@
       test( "should send 'data-update' event with data", ( done ) => {
         const listener = ( evt ) => {
           assert.deepEqual( evt.detail, {
+            cached: false,
             data: realTimeData.table,
             "user-config-change": false
           } );
@@ -381,7 +386,7 @@
 
       test( "should send 'data-update' event with empty detail when no table provided", ( done ) => {
         const listener = ( evt ) => {
-          assert.deepEqual( evt.detail, { "user-config-change": false } );
+          assert.deepEqual( evt.detail, { cached: false, "user-config-change": false } );
 
           element.removeEventListener( "data-update", listener );
           done();
@@ -408,9 +413,11 @@
 
     } );
 
-    suite( "_handleError", () => {
+    suite( "_processError", () => {
 
-      setup(() => element._initialStart = false);
+      setup(() => {
+        element._initialStart = false;
+      });
 
       test( "should send 'request-error' event with message after 5 failed retries", ( done ) => {
         const listener = ( evt ) => {
@@ -427,39 +434,40 @@
           done();
         };
 
-        const stub = sinon.stub( element, "_getData" );
+        sinon.stub( element, "_getData" );
 
         element.addEventListener( "request-error", listener );
 
-        // force value for observed financialErrorMessage property to emulate failed financial request
-        element.financialErrorMessage = "Test error message";
+        element._processError(false);
 
-        // account for 1 second delay
-        clock.tick( 1000 );
+        // account for 1 min retry delay
+        clock.tick( 1000 * 60 );
 
-        assert.equal( stub.callCount, 1 );
-        assert.isTrue( stub.calledWith( element.symbols, {
+        assert.equal( element._getData.callCount, 1 );
+        assert.isTrue( element._getData.calledWith( element.symbols, {
           duration: "1M",
           type: "realtime"
         }, [ "lastPrice", "netChange" ]) );
 
-        element.financialErrorMessage = "Test error message";
+        element._processError(false);
 
-        // account for 1 second delay
-        clock.tick( 1000 );
+        // account for 1 min retry delay
+        clock.tick( 1000 * 60 );
 
-        assert.equal( stub.callCount, 2 );
+        assert.equal( element._getData.callCount, 2 );
 
         // emulate further retry failures
         for ( let i = 0; i < 3; i += 1 ) {
-          element.financialErrorMessage = "Test error message";
-          clock.tick( 1000 );
+          element._processError(false);
+          clock.tick( 1000 * 60 );
         }
 
-        assert.equal( stub.callCount, 5 );
+        assert.equal( element._getData.callCount, 5 );
 
+        // 5 retries have been done, emulate for testing log value
         element.financialErrorMessage = "Test error message";
-        clock.tick( 1000 );
+
+        element._processError(false);
       } );
 
     } );
@@ -560,12 +568,12 @@
 
         sampleData.data.rows[0].c[0].v = "N/P";
 
-        element._checkFinancialErrors( sampleData );
+        element._checkFinancialErrors( sampleData, false );
 
         assert.isTrue( stub.calledWith(
           "warning",
           "Rise is not permissioned to show the instrument",
-          { symbols: element.symbols }
+          { symbols: element.symbols, cached: false }
         ));
 
         stub.restore();
@@ -577,17 +585,17 @@
         sampleData.data.rows[0].c[0].v = "N/P";
         sampleData.data.rows[1].c[0].v = "S/P";
 
-        element._checkFinancialErrors( sampleData );
+        element._checkFinancialErrors( sampleData, false );
 
         assert.isTrue( stub.calledWith(
           "warning",
           "Rise is not permissioned to show the instrument",
-          { symbols: element.symbols }
+          { symbols: element.symbols, cached: false }
         ));
         assert.isTrue( stub.calledWith(
           "error",
           "Display is not permissioned to show the instrument",
-          { symbols: element.symbols }
+          { symbols: element.symbols, cached: false }
         ));
 
         stub.restore();
@@ -598,12 +606,12 @@
 
         sampleData.data.rows[0].c[0].v = "N/A";
 
-        element._checkFinancialErrors( sampleData );
+        element._checkFinancialErrors( sampleData, false );
 
         assert.isTrue( stub.calledWith(
           "error",
           "Instrument is unavailable, invalid or unknown",
-          { symbols: element.symbols }
+          { symbols: element.symbols, cached: false }
         ));
 
         stub.restore();

@@ -261,41 +261,43 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     }
   }
 
+  _processError( isOffline ) {
+    if ( this._financialRequestRetryCount === 0 ) {
+      this._cachedEvent && this._handleData( this._cachedEvent );
+    }
+
+    if ( this._financialRequestRetryCount < 5 ) {
+      this._financialRequestRetryCount += 1;
+
+      // need to reset to null otherwise financialErrorMessage value may not change from next request failure
+      // and therefore observer won't trigger this handler
+      this.financialErrorMessage = null;
+
+      timeOut.run(() => {
+        this._getData( this.symbols,
+          {
+            type: this.type,
+            duration: this.duration
+          },
+          this.instrumentFields
+        );
+      }, RiseDataFinancial.TIMING_CONFIG.retry );
+    } else {
+      this._financialRequestRetryCount = 0;
+      if ( isOffline ) {
+        this._log( "error", RiseDataFinancial.EVENT_CLIENT_OFFLINE, { message: this.financialErrorMessage });
+      } else {
+        this._log( "error", RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
+        this._sendFinancialEvent( RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
+      }
+
+      this._refresh( RiseDataFinancial.TIMING_CONFIG.cooldown );
+    }
+  }
+
   _handleError() {
     if ( !this._initialStart && this.financialErrorMessage ) {
-      this._isOffline().then( isOffline => {
-        if ( this._financialRequestRetryCount === 0 ) {
-          this._cachedEvent && this._handleData( this._cachedEvent );
-        }
-
-        if ( this._financialRequestRetryCount < 5 ) {
-          this._financialRequestRetryCount += 1;
-
-          // need to reset to null otherwise financialErrorMessage value may not change from next request failure
-          // and therefore observer won't trigger this handler
-          this.financialErrorMessage = null;
-
-          timeOut.run(() => {
-            this._getData( this.symbols,
-              {
-                type: this.type,
-                duration: this.duration
-              },
-              this.instrumentFields
-            );
-          }, RiseDataFinancial.TIMING_CONFIG.retry );
-        } else {
-          this._financialRequestRetryCount = 0;
-          if ( isOffline ) {
-            this._log( "error", RiseDataFinancial.EVENT_CLIENT_OFFLINE, { message: this.financialErrorMessage });
-          } else {
-            this._log( "error", RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
-            this._sendFinancialEvent( RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
-          }
-
-          this._refresh( RiseDataFinancial.TIMING_CONFIG.cooldown );
-        }
-      });
+      this._isOffline().then( isOffline => this._processError( isOffline ));
     }
   }
 

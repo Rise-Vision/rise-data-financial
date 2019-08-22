@@ -71,6 +71,10 @@
         error: sinon.spy()
       };
 
+      RisePlayerConfiguration.isPreview = () => {
+        return false;
+      };
+
       element = fixture("test-block");
     });
 
@@ -92,19 +96,24 @@
 
       sinon.stub( element, "_refresh" );
       sinon.stub( element, "_getData" );
+      sinon.stub( element, "_handleError" );
 
-      // force value for observed financialErrorMessage property to emulate failed financial request
-      element.financialErrorMessage = "test error";
-      // account for 1 second delay
-      clock.tick( 1000 );
+      element._processError(false);
+      // account for 1 min retry delay
+      clock.tick( 1000 * 60 );
 
       assert.equal( RisePlayerConfiguration.Logger.error.callCount, 0 );
 
       // emulate further retry failures
-      for ( let i = 0; i < 5; i += 1 ) {
-        element.financialErrorMessage = "test error";
-        clock.tick( 1000 );
+      for ( let i = 0; i < 4; i += 1 ) {
+        element._processError(false);
+        clock.tick( 1000 * 60 );
       }
+
+      // 5 retries have been done, emulate for testing log value
+      element.financialErrorMessage = "test error";
+
+      element._processError(false);
 
       assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 0 ], componentData );
       assert.equal( RisePlayerConfiguration.Logger.error.args[ 0 ][ 1 ], "request-error");
@@ -125,7 +134,7 @@
 
       assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 0 ], componentData );
       assert.equal( RisePlayerConfiguration.Logger.error.args[ 0 ][ 1 ], "data-error");
-      assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 2 ], { error: "test error" } );
+      assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 2 ], { error: "test error", cached: false } );
 
       element._refresh.restore();
     } );
@@ -137,6 +146,7 @@
       assert.equal( RisePlayerConfiguration.Logger.info.args[ 0 ][ 1 ], "data-update");
       assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 2 ], {
         data: realTimeData.table,
+        cached: false,
         "user-config-change": false
       } );
       assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 3 ], {
@@ -148,8 +158,8 @@
     test( "should log 'reset' info event", () => {
       element._initialStart = false;
 
-      element.symbols = ".abc|.def";
       sinon.stub( element, "_getData" );
+      element.symbols = ".abc|.def";
 
       assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 0 ], componentData );
       assert.equal( RisePlayerConfiguration.Logger.info.args[ 0 ][ 1 ], "reset");

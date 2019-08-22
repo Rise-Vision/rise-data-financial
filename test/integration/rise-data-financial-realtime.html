@@ -46,6 +46,10 @@
         error: () => {}
       };
 
+      RisePlayerConfiguration.isPreview = () => {
+        return false;
+      };
+
       element = fixture("test-block")
     });
 
@@ -67,6 +71,7 @@
 
       setup( () => {
         spy = sinon.spy( element, "_refresh" );
+        sinon.stub( element, "_getData" );
       } );
 
       teardown( () => {
@@ -78,47 +83,45 @@
         element._handleData( { detail: [ realTimeData ] } );
 
         assert( spy.calledOnce );
+        // normal refresh delay
+        assert( spy.calledWith( 60000 ) );
       } );
 
       test( "should start refresh timer on failed JSON request", () => {
         element._initialStart = false;
 
-        sinon.stub( element, "_getData" );
-
-        // force value for observed financialErrorMessage property to emulate failed financial request
-        element.financialErrorMessage = "test error";
-        // account for 1 second delay
-        clock.tick( 1000 );
-
-        // emulate further retry failures
-        for ( let i = 0; i < 5; i += 1 ) {
-          element.financialErrorMessage = "test error";
-          clock.tick( 1000 );
+        // emulate retry failures
+        for ( let i = 0; i < 6; i += 1 ) {
+          element._processError(false);
+          clock.tick( 1000 * 60 );
         }
 
         assert( spy.calledOnce );
-
-        element._getData.restore();
+        // cooldown delay
+        assert( spy.calledWith( 600000 ) );
       } );
 
     } );
 
     suite( "attribute value change", () => {
 
-      test( "should call _reset() from symbols change", () => {
-        let changedStub = sinon.stub( element, "_reset" );
+      setup( () => {
+        sinon.spy( element, "_reset" );
+        sinon.stub( element, "_getData" );
+      } );
 
+      teardown( () => {
+        element._reset.restore();
+      } );
+
+      test( "should call _reset() from symbols change", () => {
         element.setAttribute( "symbols", ".abc|.def" );
-        assert.isTrue( changedStub.calledOnce );
-        changedStub.restore();
+        assert.isTrue( element._reset.calledOnce );
       } );
 
       test( "should call _reset() from instrumentFields change", () => {
-        let changedStub = sinon.stub( element, "_reset" );
-
         element.setAttribute( "instrument-fields", '["test1"]' );
-        assert.isTrue( changedStub.calledOnce );
-        changedStub.restore();
+        assert.isTrue( element._reset.calledOnce );
       } );
 
     } );

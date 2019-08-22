@@ -45,6 +45,10 @@
         error: () => {}
       };
 
+      RisePlayerConfiguration.isPreview = () => {
+        return false;
+      };
+
       element = fixture("test-block");
       resetStub = sinon.stub(element, "_reset");
     });
