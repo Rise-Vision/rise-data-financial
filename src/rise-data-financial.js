@@ -132,6 +132,8 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     this._initialStart = true;
     this._financialRequestRetryCount = 0;
     this._userConfigChange = false;
+    this._url = "";
+    this._cacheKey = "";
     this._cachedEvent = null;
   }
 
@@ -334,7 +336,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     }
 
     if ( !cached ) {
-      super.putCache && super.putCache( new Response( JSON.stringify( event )), this._url );
+      super.putCache && super.putCache( new Response( JSON.stringify( event )), this._cacheKey );
     }
 
     this._refresh( RiseDataFinancial.TIMING_CONFIG.refresh );
@@ -376,6 +378,12 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
 
   _getKey() {
     return `risedatafinancial_${this.type}_${this.displayId}_${this.symbols}_${this.duration}`;
+  }
+
+  _getCacheKey() {
+    const fields = this.instrumentFields.length > 0 ? this.instrumentFields.join( "," ) : "";
+
+    return `${this._getKey()}_${fields}`;
   }
 
   _getCallbackValue( key ) {
@@ -443,8 +451,9 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
 
     financial.callbackName = callbackValue;
     this._url = url;
+    this._cacheKey = this._getCacheKey();
 
-    return this._tryGetCache( url ).then( resp => {
+    return this._tryGetCache( this._cacheKey ).then( resp => {
       resp.json().then( event => this._handleData( Object.assign( event, { cached: true })));
     }).catch(( cachedResp ) => {
       if ( cachedResp ) {
