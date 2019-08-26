@@ -56,6 +56,7 @@
 
     let element,
       clock,
+      cacheMixin,
       _resetStub;
 
     setup(() => {
@@ -74,6 +75,9 @@
       };
 
       element = fixture("test-block");
+
+      cacheMixin = element.__proto__.__proto__;
+
       _resetStub = sinon.stub(element, "_reset");
 
     });
@@ -226,6 +230,25 @@
 
     });
 
+    suite( "_getCacheKey()", () => {
+
+      test( "should return correct key value when configured with defaults", () => {
+        const expected = `risedatafinancial_${element.type}_${element.displayId}_${element.symbols}_${element.duration}_lastPrice,netChange`;
+        assert.equal( element._getCacheKey(), expected );
+      } );
+
+      test( "should return correct key value when configured different from defaults", () => {
+        element.symbol = instrument.symbol;
+        element.type = "historical";
+        element.duration = "week";
+        element.instrumentFields = ["name", "percentChange"];
+
+        const expected = `risedatafinancial_${element.type}_${element.displayId}_${element.symbols}_${element.duration}_name,percentChange`;
+        assert.equal( element._getCacheKey(), expected );
+      } );
+
+    });
+
     suite( "_getSerializedUrl", () => {
 
       test( "should return a serialized url with query params", () => {
@@ -364,9 +387,65 @@
         assert.include( element._getSerializedUrl.args[0][1].tqx, "out:json;responseHandler:" );
       } );
 
+      test( "should call _handleData from a valid cache response with correct params", (done) => {
+        sandbox.stub(cacheMixin, "getCache").resolves(new Response(JSON.stringify({ detail: [ realTimeData ] })));
+        sinon.stub(element, "_handleData");
+        clock.restore();
+
+        element._getData( element.symbols, props, fields );
+
+        setTimeout(()=>{
+          assert.isTrue(element._handleData.calledWith({ detail: [ realTimeData ], cached:true }));
+          clock = sinon.useFakeTimers();
+          done();
+        }, 200);
+
+      });
+
+      test( "should call _requestData from an expired cache response with correct params", (done) => {
+        sandbox.stub(cacheMixin, "getCache").callsFake(() => Promise.reject(new Response(JSON.stringify({ detail: [ realTimeData ] }))));
+        sinon.stub(element, "_requestData");
+        clock.restore();
+
+        element._getData( element.symbols, props, fields );
+
+        setTimeout(()=>{
+          assert.isTrue(element._requestData.calledWith({ detail: [ realTimeData ], cached:true }));
+          clock = sinon.useFakeTimers();
+          done();
+        }, 200);
+
+      });
+
+      test( "should call _requestData when no cache response with correct params", (done) => {
+        sandbox.stub(cacheMixin, "getCache").callsFake(()=> Promise.reject());
+
+        sinon.stub(element, "_requestData");
+        clock.restore();
+
+        element._getData( element.symbols, props, fields );
+
+        setTimeout(()=>{
+          assert.isTrue(element._requestData.calledWith(null));
+          clock = sinon.useFakeTimers();
+          done();
+        }, 200);
+
+      });
+
     } );
 
     suite( "_handleData", () => {
+
+      let sandbox = sinon.createSandbox();
+
+      setup(() => {
+        sandbox.stub(cacheMixin, "putCache");
+      });
+
+      teardown(()=>{
+        sandbox.restore();
+      });
 
       test( "should send 'data-update' event with data", ( done ) => {
         const listener = ( evt ) => {
@@ -409,6 +488,18 @@
 
         element.addEventListener( "data-error", listener );
         element._handleData( { detail: [ { errors: [ { detailed_message: "400: Test error message", message: "Test error message" } ] } ] } );
+      } );
+
+      test( "should put the data in cache when cached property not present in event object", () => {
+        element._handleData( { detail: [ realTimeData ] } );
+
+        assert.isTrue( cacheMixin.putCache.called);
+      } );
+
+      test( "should not put the data in cache when cached property is present in event object", () => {
+        element._handleData( { detail: [ realTimeData ], cached: true } );
+
+        assert.isFalse( cacheMixin.putCache.called);
       } );
 
     } );
@@ -655,6 +746,64 @@
       });
 
     });
+
+    suite( "configureCache", () => {
+      let sandbox = sinon.createSandbox();
+
+      setup(() => {
+        sandbox.stub(cacheMixin, "initCache");
+      });
+
+      teardown(()=>{
+        sandbox.restore();
+      });
+
+      test( "should not init cache if invalid type provided", () => {
+        element.type = "test";
+        element._configureCache();
+
+        assert.isFalse( cacheMixin.initCache.called );
+      } );
+
+      test( "should init cache with correct params when type is realtime", () => {
+        element._configureCache();
+
+        assert.isTrue(cacheMixin.initCache.called);
+        assert.isTrue(cacheMixin.initCache.calledWith({
+          name: "rise-data-financial",
+          duration: 55000,
+          expiry: -1
+        }));
+
+      });
+
+      test( "should init cache with correct params when type is historical and duration is Day", () => {
+        element.type = "historical";
+        element.duration = "Day";
+
+        element._configureCache();
+
+        assert.isTrue( cacheMixin.initCache.called );
+        assert.isTrue( cacheMixin.initCache.calledWith({
+          name: "rise-data-financial",
+          duration: 55000,
+          expiry: -1
+        }) );
+      } );
+
+      test( "should init cache with correct params when type is historical and duration is not  Day", () => {
+        element.type = "historical";
+
+        element._configureCache();
+
+        assert.isTrue( cacheMixin.initCache.called );
+        assert.isTrue( cacheMixin.initCache.calledWith({
+          name: "rise-data-financial",
+          duration: 86400000,
+          expiry: -1
+        }) );
+      } );
+    } );
 
   });
 </script>
