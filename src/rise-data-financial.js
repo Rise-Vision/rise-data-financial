@@ -137,36 +137,6 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     this._cachedEvent = null;
   }
 
-  ready() {
-    super.ready();
-
-    if ( this._isValidType( this.type )) {
-      if ( this.type === "realtime" || ( this.type === "historical" && this.duration.toUpperCase() === "DAY" )) {
-        super.initCache({
-          name: this.tagName.toLowerCase(),
-          expiration: -1
-        });
-      } else {
-        // set a duration of 24 hours that a cached response is valid for historical data (except when duration is DAY)
-        super.initCache({
-          name: this.tagName.toLowerCase(),
-          duration: 1000 * 60 * 60 * 24,
-          expiration: -1
-        });
-      }
-    }
-  }
-
-  _init() {
-    super._init();
-
-    const display_id = RisePlayerConfiguration.getDisplayId();
-
-    if ( display_id && typeof display_id === "string" && display_id !== "DISPLAY_ID" ) {
-      this._setDisplayId( display_id );
-    }
-  }
-
   connectedCallback() {
     super.connectedCallback();
 
@@ -333,10 +303,16 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
       this._checkFinancialErrors( data, cached );
 
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_UPDATE, data );
-    }
 
-    if ( !cached ) {
-      super.putCache && super.putCache( new Response( JSON.stringify( event )), this._cacheKey );
+      if ( !cached ) {
+        const options = {
+          headers: {
+            "Date": new Date()
+          }
+        };
+
+        super.putCache && super.putCache( new Response( JSON.stringify( event ), options), this._cacheKey );
+      }
     }
 
     this._refresh( RiseDataFinancial.TIMING_CONFIG.refresh );
@@ -478,9 +454,40 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     }
   }
 
+  _configureDisplayId() {
+    const display_id = RisePlayerConfiguration.getDisplayId();
+
+    if ( display_id && typeof display_id === "string" && display_id !== "DISPLAY_ID" ) {
+      this._setDisplayId( display_id );
+    }
+  }
+
+  _configureCache() {
+    if ( this._isValidType( this.type )) {
+      if ( this.type === "realtime" || ( this.type === "historical" && this.duration.toUpperCase() === "DAY" )) {
+        super.initCache({
+          // set a duration 5 seconds less than refresh timing value to account for any Debounce timer inaccuracy
+          name: this.tagName.toLowerCase(),
+          duration: 1000 * 55,
+          expiry: -1
+        });
+      } else {
+        // set a duration of 24 hours that a cached response is valid for historical data (except when duration is DAY)
+        super.initCache({
+          name: this.tagName.toLowerCase(),
+          duration: 1000 * 60 * 60 * 24,
+          expiry: -1
+        });
+      }
+    }
+  }
+
   _handleStart() {
     if ( this._initialStart ) {
       this._initialStart = false;
+
+      this._configureDisplayId();
+      this._configureCache();
 
       // configure and execute request
       this._getData( this.symbols,
