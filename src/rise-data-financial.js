@@ -311,7 +311,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
           }
         };
 
-        super.putCache && super.putCache( new Response( JSON.stringify( event ), options), this._cacheKey );
+        super.putCache && super.putCache( new Response( JSON.stringify( event ), options ), this._cacheKey );
       }
     }
 

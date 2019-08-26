@@ -172,7 +172,7 @@
 
         const callback = ( btoa( "request" + element._getKey() ) ).substr( 0, 10 ) + Math.random(),
           expected = {
-            id: "ABC123",
+            id: "preview",
             code: inst1.symbol,
             tq: "select lastPrice,netChange",
             tqx: "out:json;responseHandler:" + callback,
@@ -184,7 +184,7 @@
       test( "should return query parameters object with no 'tq' property", () => {
         const callback = ( btoa( "request" + element._getKey() ) ).substr( 0, 10 ) + Math.random(),
           expected = {
-            id: "ABC123",
+            id: "preview",
             code: inst1.symbol,
             tqx: "out:json;responseHandler:" + callback,
           };
@@ -351,7 +351,7 @@
 
       test( "should call '_getSerializedUrl()' with correct params", () => {
         const expected = {
-          id: "ABC123",
+          id: "preview",
           code: "AA.N|.DJI",
           tq: "select lastPrice,netChange"
         };
@@ -497,41 +497,38 @@
 
     } );
 
-    suite( "ready", () => {
-      test( "should set display id when a valid display id is provided", () => {
-        assert.equal( element.displayId, "ABC123" );
-      } );
-    } );
-
     suite( "_handleStart", () => {
 
-      test( "should call _getData() when this is the initial 'start'", () => {
-        const stub = sinon.stub( element, "_getData" );
+      setup( () => {
+        sinon.stub( element, "_getData" );
+      } );
 
+      test( "should set display id when a valid display id is provided", () => {
         const event = new CustomEvent( "start" );
         element.dispatchEvent( event );
 
-        assert.isTrue( stub.calledWith( element.symbols, {
+        assert.equal( element.displayId, "ABC123" );
+      } );
+
+      test( "should call _getData() when this is the initial 'start'", () => {
+        const event = new CustomEvent( "start" );
+        element.dispatchEvent( event );
+
+        assert.isTrue( element._getData.calledWith( element.symbols, {
           duration: "1M",
           type: "realtime"
         }, [ "lastPrice", "netChange" ]) );
 
         assert.isFalse( element._initialStart, "_initialStart set to false" );
-
-        stub.restore();
       } );
 
       test( "should not call _getData() when this is not the initial start", () => {
-        const spy = sinon.stub( element, "_getData" );
-
         element._initialStart = false;
 
         const event = new CustomEvent( "getData" );
         element.dispatchEvent( event );
 
-        assert.equal( spy.callCount, 0, "_getData is not called" );
-
-        spy.restore();
+        assert.equal( element._getData.callCount, 0, "_getData is not called" );
       } );
 
     } );
