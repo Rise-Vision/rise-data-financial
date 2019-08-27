@@ -298,7 +298,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
       }
 
       // Just log these entries once per day, as they may consume lots of log space.
-      this._log( "info", RiseDataFinancial.EVENT_DATA_UPDATE, Object.assign( data, { cached }), RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
+      this._log( "info", RiseDataFinancial.EVENT_DATA_UPDATE, Object.assign({}, data, { cached }), RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
 
       this._checkFinancialErrors( data, cached );
 

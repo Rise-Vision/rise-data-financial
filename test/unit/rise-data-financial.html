@@ -450,7 +450,6 @@
       test( "should send 'data-update' event with data", ( done ) => {
         const listener = ( evt ) => {
           assert.deepEqual( evt.detail, {
-            cached: false,
             data: realTimeData.table,
             "user-config-change": false
           } );
@@ -465,7 +464,7 @@
 
       test( "should send 'data-update' event with empty detail when no table provided", ( done ) => {
         const listener = ( evt ) => {
-          assert.deepEqual( evt.detail, { cached: false, "user-config-change": false } );
+          assert.deepEqual( evt.detail, { "user-config-change": false } );
 
           element.removeEventListener( "data-update", listener );
           done();
