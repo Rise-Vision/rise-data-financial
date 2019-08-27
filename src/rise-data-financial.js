@@ -464,21 +464,19 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
 
   _configureCache() {
     if ( this._isValidType( this.type )) {
+      const initObj = {
+        name: this.tagName.toLowerCase(),
+        expiry: -1
+      };
+
       if ( this.type === "realtime" || ( this.type === "historical" && this.duration.toUpperCase() === "DAY" )) {
-        super.initCache({
-          // set a duration 5 seconds less than refresh timing value to account for any Debounce timer inaccuracy
-          name: this.tagName.toLowerCase(),
-          duration: 1000 * 55,
-          expiry: -1
-        });
+        initObj.duration = 1000 * 55;
       } else {
         // set a duration of 24 hours that a cached response is valid for historical data (except when duration is DAY)
-        super.initCache({
-          name: this.tagName.toLowerCase(),
-          duration: 1000 * 60 * 60 * 24,
-          expiry: -1
-        });
+        initObj.duration = 1000 * 60 * 60 * 24;
       }
+
+      super.initCache( initObj );
     }
   }
 
