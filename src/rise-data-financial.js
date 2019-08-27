@@ -150,17 +150,6 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     this.$.financial.removeEventListener( "financial-data", this._handleData );
   }
 
-  _isOffline() {
-    return new Promise(( resolve ) => {
-      fetch( "https://widgets.risevision.com", { method: "HEAD" })
-        .then(() => {
-          resolve( false );
-        }).catch(() => {
-          resolve( true );
-        });
-    });
-  }
-
   _log( type, event, details = null, additionalFields ) {
     super.log( type, event, details, additionalFields );
   }
@@ -269,7 +258,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
 
   _handleError() {
     if ( !this._initialStart && this.financialErrorMessage ) {
-      this._isOffline().then( isOffline => this._processError( isOffline ));
+      super.isOffline().then( isOffline => this._processError( isOffline ));
     }
   }
 
