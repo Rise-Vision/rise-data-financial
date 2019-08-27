@@ -2,13 +2,14 @@
 
 import { html } from "@polymer/polymer";
 import { RiseElement } from "rise-common-component/src/rise-element.js";
+import { CacheMixin } from "rise-common-component/src/cache-mixin.js";
 import { timeOut } from "@polymer/polymer/lib/utils/async.js";
 import { Debouncer } from "@polymer/polymer/lib/utils/debounce.js";
 import { financialServerConfig } from "./rise-data-financial-config.js";
 import { version } from "./rise-data-financial-version.js";
 import "@polymer/iron-jsonp-library/iron-jsonp-library.js";
 
-class RiseDataFinancial extends RiseElement {
+class RiseDataFinancial extends CacheMixin( RiseElement ) {
 
   static get template() {
     return html`
@@ -87,6 +88,9 @@ class RiseDataFinancial extends RiseElement {
   static get EVENT_REQUEST_ERROR() {
     return "request-error";
   }
+  static get EVENT_CLIENT_OFFLINE() {
+    return "client-offline"
+  }
 
   static get ERROR_EVENTS() {
     return {
@@ -111,6 +115,14 @@ class RiseDataFinancial extends RiseElement {
     };
   }
 
+  static get TIMING_CONFIG() {
+    return {
+      refresh: 1000 * 60,
+      retry: 1000 * 60,
+      cooldown: 1000 * 60 * 10
+    }
+  }
+
   constructor() {
     super();
 
@@ -120,16 +132,9 @@ class RiseDataFinancial extends RiseElement {
     this._initialStart = true;
     this._financialRequestRetryCount = 0;
     this._userConfigChange = false;
-  }
-
-  _init() {
-    super._init();
-
-    const display_id = RisePlayerConfiguration.getDisplayId();
-
-    if ( display_id && typeof display_id === "string" && display_id !== "DISPLAY_ID" ) {
-      this._setDisplayId( display_id );
-    }
+    this._url = "";
+    this._cacheKey = "";
+    this._cachedEvent = null;
   }
 
   connectedCallback() {
@@ -217,30 +222,43 @@ class RiseDataFinancial extends RiseElement {
     }
   }
 
-  _handleError() {
-    if ( !this._initialStart && this.financialErrorMessage ) {
-      if ( this._financialRequestRetryCount < 5 ) {
-        this._financialRequestRetryCount += 1;
+  _processError( isOffline ) {
+    if ( this._financialRequestRetryCount === 0 ) {
+      this._cachedEvent && this._handleData( this._cachedEvent );
+    }
 
-        // need to reset to null otherwise financialErrorMessage value may not change from next request failure
-        // and therefore observer won't trigger this handler
-        this.financialErrorMessage = null;
+    if ( this._financialRequestRetryCount < 5 ) {
+      this._financialRequestRetryCount += 1;
 
-        timeOut.run(() => {
-          this._getData( this.symbols,
-            {
-              type: this.type,
-              duration: this.duration
-            },
-            this.instrumentFields
-          );
-        }, 1000 );
+      // need to reset to null otherwise financialErrorMessage value may not change from next request failure
+      // and therefore observer won't trigger this handler
+      this.financialErrorMessage = null;
+
+      timeOut.run(() => {
+        this._getData( this.symbols,
+          {
+            type: this.type,
+            duration: this.duration
+          },
+          this.instrumentFields
+        );
+      }, RiseDataFinancial.TIMING_CONFIG.retry );
+    } else {
+      this._financialRequestRetryCount = 0;
+      if ( isOffline ) {
+        this._log( "error", RiseDataFinancial.EVENT_CLIENT_OFFLINE, { message: this.financialErrorMessage });
       } else {
-        this._financialRequestRetryCount = 0;
         this._log( "error", RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
         this._sendFinancialEvent( RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
-        this._refresh();
       }
+
+      this._refresh( RiseDataFinancial.TIMING_CONFIG.cooldown );
+    }
+  }
+
+  _handleError() {
+    if ( !this._initialStart && this.financialErrorMessage ) {
+      super.isOffline().then( isOffline => this._processError( isOffline ));
     }
   }
 
@@ -249,12 +267,13 @@ class RiseDataFinancial extends RiseElement {
       return;
     }
 
-    const detail = event.detail [ 0 ];
+    const detail = event.detail [ 0 ],
+      cached = event.cached || false;
 
     this._financialRequestRetryCount = 0;
 
     if ( detail.hasOwnProperty( "errors" ) && detail.errors.length === 1 ) {
-      this._log( "error", RiseDataFinancial.EVENT_DATA_ERROR, { error: detail.errors[ 0 ] });
+      this._log( "error", RiseDataFinancial.EVENT_DATA_ERROR, { error: detail.errors[ 0 ], cached });
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_ERROR, detail.errors[ 0 ]);
     } else {
       let data = {
@@ -268,17 +287,27 @@ class RiseDataFinancial extends RiseElement {
       }
 
       // Just log these entries once per day, as they may consume lots of log space.
-      this._log( "info", RiseDataFinancial.EVENT_DATA_UPDATE, data, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
+      this._log( "info", RiseDataFinancial.EVENT_DATA_UPDATE, Object.assign({}, data, { cached }), RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
 
-      this._checkFinancialErrors( data );
+      this._checkFinancialErrors( data, cached );
 
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_UPDATE, data );
+
+      if ( !cached ) {
+        const options = {
+          headers: {
+            "Date": new Date()
+          }
+        };
+
+        super.putCache && super.putCache( new Response( JSON.stringify( event ), options ), this._cacheKey );
+      }
     }
 
-    this._refresh();
+    this._refresh( RiseDataFinancial.TIMING_CONFIG.refresh );
   }
 
-  _checkFinancialErrors( data ) {
+  _checkFinancialErrors( data, cached ) {
     Object.keys( RiseDataFinancial.ERROR_EVENTS )
       .forEach( status => {
         if ( data.data && data.data.rows && data.data.rows.some( row =>
@@ -287,7 +316,7 @@ class RiseDataFinancial extends RiseElement {
           const error = RiseDataFinancial.ERROR_EVENTS[ status ];
 
           this._log( error.level, `${ error.message }`, {
-            symbols: this.symbols
+            symbols: this.symbols, cached
           }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
         }
       });
@@ -316,6 +345,12 @@ class RiseDataFinancial extends RiseElement {
     return `risedatafinancial_${this.type}_${this.displayId}_${this.symbols}_${this.duration}`;
   }
 
+  _getCacheKey() {
+    const fields = this.instrumentFields.length > 0 ? this.instrumentFields.join( "," ) : "";
+
+    return `${this._getKey()}_${fields}`;
+  }
+
   _getCallbackValue( key ) {
     return ( btoa(( this.id ? this.id : "" ) + key )).substr( 0, 10 ) + ( Math.random().toString()).substring( 2 );
   }
@@ -328,12 +363,28 @@ class RiseDataFinancial extends RiseElement {
     return `${url}?${queryParams}`;
   }
 
+  _tryGetCache( url ) {
+    if ( super.getCache ) {
+      return super.getCache( url );
+    } else {
+      return Promise.reject();
+    }
+  }
+
+  _requestData( cachedEvent ) {
+    const financial = this.$.financial;
+
+    this._cachedEvent = cachedEvent;
+
+    financial.libraryUrl = this._url;
+  }
+
   _getData( symbols, props, fields ) {
     if ( !this._isValidType( props.type ) || !this._isValidDuration( props.duration, props.type )) {
       this._log( "error", "Invalid attributes", { props }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
 
       this._sendEmptyDataEvent();
-      this._refresh();
+      this._refresh( RiseDataFinancial.TIMING_CONFIG.refresh );
 
       return;
     }
@@ -344,7 +395,7 @@ class RiseDataFinancial extends RiseElement {
       }
 
       this._sendEmptyDataEvent();
-      this._refresh();
+      this._refresh( RiseDataFinancial.TIMING_CONFIG.refresh );
 
       return;
     }
@@ -364,12 +415,23 @@ class RiseDataFinancial extends RiseElement {
     }
 
     financial.callbackName = callbackValue;
-    financial.libraryUrl = url;
+    this._url = url;
+    this._cacheKey = this._getCacheKey();
+
+    return this._tryGetCache( this._cacheKey ).then( resp => {
+      resp.json().then( event => this._handleData( Object.assign( event, { cached: true })));
+    }).catch(( cachedResp ) => {
+      if ( cachedResp ) {
+        cachedResp.json().then( event => this._requestData( Object.assign( event, { cached: true })));
+      } else {
+        this._requestData( null );
+      }
+    });
   }
 
-  _refresh() {
+  _refresh( interval ) {
     if ( !this._refreshDebounceJob || !this._refreshDebounceJob.isActive()) {
-      this._refreshDebounceJob = Debouncer.debounce( this._refreshDebounceJob, timeOut.after( 60000 ), () => {
+      this._refreshDebounceJob = Debouncer.debounce( this._refreshDebounceJob, timeOut.after( interval ), () => {
         this._getData( this.symbols,
           {
             type: this.type,
@@ -381,9 +443,38 @@ class RiseDataFinancial extends RiseElement {
     }
   }
 
+  _configureDisplayId() {
+    const display_id = RisePlayerConfiguration.getDisplayId();
+
+    if ( display_id && typeof display_id === "string" && display_id !== "DISPLAY_ID" ) {
+      this._setDisplayId( display_id );
+    }
+  }
+
+  _configureCache() {
+    if ( this._isValidType( this.type )) {
+      const initObj = {
+        name: this.tagName.toLowerCase(),
+        expiry: -1
+      };
+
+      if ( this.type === "realtime" || ( this.type === "historical" && this.duration.toUpperCase() === "DAY" )) {
+        initObj.duration = 1000 * 55;
+      } else {
+        // set a duration of 24 hours that a cached response is valid for historical data (except when duration is DAY)
+        initObj.duration = 1000 * 60 * 60 * 24;
+      }
+
+      super.initCache( initObj );
+    }
+  }
+
   _handleStart() {
     if ( this._initialStart ) {
       this._initialStart = false;
+
+      this._configureDisplayId();
+      this._configureCache();
 
       // configure and execute request
       this._getData( this.symbols,

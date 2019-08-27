@@ -45,6 +45,10 @@
         error: () => {}
       };
 
+      RisePlayerConfiguration.isPreview = () => {
+        return false;
+      };
+
       element = fixture("test-block");
       resetStub = sinon.stub(element, "_reset");
     });
@@ -110,7 +114,7 @@
         const stub = sinon.stub( element, "_getSerializedUrl" );
 
         const expected = {
-          id: "ABC123",
+          id: "preview",
           code: "AA.N|.DJI",
           kind: "1M",
         };

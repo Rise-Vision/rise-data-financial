@@ -44,16 +44,21 @@
       element = fixture("test-block");
     });
 
-    suite( "_init", () => {
+    suite( "start", () => {
 
-      test( "should not set display id after rise-components-ready is not called", () => {
-        assert.equal( element.displayId, "preview" );
+      setup( () => {
+        sinon.stub( element, "_getData" );
       } );
 
-      test( "should set display id after rise-components-ready is called", () => {
+      test( "should not execute start handler", () => {
+        sinon.spy( element, "_handleStart" );
+        assert.isFalse( element._handleStart.called );
+      } );
+
+      test( "should not set display id after rise-components-ready is called", () => {
         window.dispatchEvent( new CustomEvent( "rise-components-ready" ));
 
-        assert.equal( element.displayId, "ABC123" );
+        assert.equal( element.displayId, "preview" );
       } );
 
     } );
