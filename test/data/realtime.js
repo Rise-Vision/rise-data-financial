@@ -13,7 +13,7 @@ const realTimeData = {
       c: [
         { v: 12.3 },
         { v: 12.3 },
-        { v: "Thu Aug 22 2019 10:00:00 GMT-0400 (Eastern Daylight Time)" },
+        { v: new Date() },
       ]
     } ]
   },
