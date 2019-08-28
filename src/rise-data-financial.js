@@ -296,7 +296,8 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
       if ( !cached ) {
         const options = {
           headers: {
-            "Date": new Date()
+            "Date": new Date(),
+            "content-type": "application/json"
           }
         };
 
@@ -379,6 +380,54 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     financial.libraryUrl = this._url;
   }
 
+  _dateReviver( key, value ) {
+    const reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
+
+    if ( typeof value === "string" ) {
+      let a = reISO.exec( value );
+
+      if ( a ) {
+        return new Date( value );
+      }
+    }
+
+    return value;
+  }
+
+  _handleParseError( event, err ) {
+    this._log( "error", event, { err }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
+  }
+
+  _processValidCacheResponse( resp ) {
+    resp.text().then( event => {
+      try {
+        const parsed = JSON.parse( event, this._dateReviver );
+
+        this._handleData( Object.assign( parsed, { cached: true }));
+      } catch ( err ) {
+        this._handleParseError( "error parsing text", err );
+      }
+    })
+      .catch( err => this._handleParseError( "error parsing response", err ));
+  }
+
+  _processInvalidCacheResponse( resp ) {
+    if ( resp ) {
+      resp.text().then( event => {
+        try {
+          const parsed = JSON.parse( event, this._dateReviver );
+
+          this._requestData( Object.assign( parsed, { cached: true }));
+        } catch ( err ) {
+          this._handleParseError( "error parsing text", err );
+        }
+      })
+        .catch( err => this._handleParseError( "error parsing response", err ));
+    } else {
+      this._requestData( null );
+    }
+  }
+
   _getData( symbols, props, fields ) {
     if ( !this._isValidType( props.type ) || !this._isValidDuration( props.duration, props.type )) {
       this._log( "error", "Invalid attributes", { props }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
@@ -418,15 +467,9 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     this._url = url;
     this._cacheKey = this._getCacheKey();
 
-    return this._tryGetCache( this._cacheKey ).then( resp => {
-      resp.json().then( event => this._handleData( Object.assign( event, { cached: true })));
-    }).catch(( cachedResp ) => {
-      if ( cachedResp ) {
-        cachedResp.json().then( event => this._requestData( Object.assign( event, { cached: true })));
-      } else {
-        this._requestData( null );
-      }
-    });
+    return this._tryGetCache( this._cacheKey )
+      .then( resp => this._processValidCacheResponse( resp ))
+      .catch(( cachedResp ) => this._processInvalidCacheResponse( cachedResp ));
   }
 
   _refresh( interval ) {
