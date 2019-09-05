@@ -149,8 +149,21 @@ The component may log the following errors:
 - **_Rise is not permissioned to show the instrument_**: Shown when financial server returned a 'N/P' status for an instrument / symbol. The event details will include the component symbols property.
 - **_Instrument is unavailable, invalid or unknown_**: Shown when financial server returned a 'N/A' status for an instrument / symbol. The event details will include the component symbols property.
 - **_Display is not permissioned to show the instrument_**: Shown when financial server returned a 'S/P' status for an instrument / symbol. The event details will include the component symbols property.
+- **_error parsing response from valid cache_**: There was a Promise rejection when calling `text()` method of valid cached `Response` object.
+- **_error parsing response from expired/invalid cache_**: There was a Promise rejection when calling `text()` method of expired cached `Response` object.
+- **_error parsing text_**: There was a problem when JSON parsing the valid or expired cached _event_ object
 
 In every case, examine event-details entry and the other event fields for more information about the problem.
+
+### Offline play
+
+The component supports offline play by relying on the browsers Cache API availability.
+
+Every time a successful request is made to the Financial server via the `<iron-jsonp-library>` component, the _event_ object that is returned from the `<iron-jsonp-library>` response trigger/handler is stored locally in the cache. In case connectivity is lost, the latest cached version will be available. Upon a Player restart, if a cached version exists it will be used until connectivity is restored.
+
+When running online and components `type` is configured for _realtime_, the duration that a cached response is valid for is 55 seconds which allows for a fresh request to the Financial server every minute to obtain realtime data. 
+
+When running online and components `type` is configured for _historical_, the duration that a cached response is valid for is 24 hours which means only one fresh request to Financial Server is made per day for _historical_ data. This rule is applicable to all `duration` configurations (i.e. _Week_, _Month_, _Year_, etc) except for _Day_. When configured for _Day_ duration, the same rules of _realtime_ are applied (55 second cache expiry)
 
 ## Built With
 - [Polymer 3](https://www.polymer-project.org/)
