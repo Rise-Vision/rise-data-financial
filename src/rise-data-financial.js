@@ -417,7 +417,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
       })
         .catch( err => this._handleParseError( "error parsing response from valid cache", err, resp ));
     } else {
-      this._log( "warning", "empty valid cache response object", { key: this._cacheKey } );
+      this._log( "warning", "empty valid cache response object", { key: this._cacheKey });
       // ensure a request for the data occurs
       this._processInvalidCacheResponse();
     }
@@ -438,7 +438,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
         .catch( err => this._handleParseError( "error parsing response from expired/invalid cache", err, resp ));
     } else {
       if ( resp && !resp.text ) {
-        this._log( "warning", "empty expired cache response object", { key: this._cacheKey } );
+        this._log( "warning", "empty expired cache response object", { key: this._cacheKey });
       }
 
       this._requestData( null );
