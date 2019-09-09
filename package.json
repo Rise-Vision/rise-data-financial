@@ -1,6 +1,6 @@
 {
   "name": "rise-data-financial",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Web component for retrieving financial data on a Rise Vision Template page",
   "scripts": {
     "build": "./create_config.sh prod && polymer build && ./node_modules/rise-common-component/scripts/extract-source.sh rise-data-financial",
