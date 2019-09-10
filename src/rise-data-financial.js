@@ -519,10 +519,10 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
       };
 
       if ( this.type === "realtime" || ( this.type === "historical" && this.duration.toUpperCase() === "DAY" )) {
-        initObj.duration = 1000 * 55;
+        initObj.refresh = 1000 * 55;
       } else {
-        // set a duration of 24 hours that a cached response is valid for historical data (except when duration is DAY)
-        initObj.duration = 1000 * 60 * 60 * 24;
+        // set a refresh of 24 hours that a cached response is valid for historical data (except when duration is DAY)
+        initObj.refresh = 1000 * 60 * 60 * 24;
       }
 
       super.initCache( initObj );

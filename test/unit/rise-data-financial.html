@@ -829,7 +829,7 @@
         assert.isTrue(cacheMixin.initCache.called);
         assert.isTrue(cacheMixin.initCache.calledWith({
           name: "rise-data-financial",
-          duration: 55000,
+          refresh: 55000,
           expiry: -1
         }));
 
@@ -844,7 +844,7 @@
         assert.isTrue( cacheMixin.initCache.called );
         assert.isTrue( cacheMixin.initCache.calledWith({
           name: "rise-data-financial",
-          duration: 55000,
+          refresh: 55000,
           expiry: -1
         }) );
       } );
@@ -857,7 +857,7 @@
         assert.isTrue( cacheMixin.initCache.called );
         assert.isTrue( cacheMixin.initCache.calledWith({
           name: "rise-data-financial",
-          duration: 86400000,
+          refresh: 86400000,
           expiry: -1
         }) );
       } );
