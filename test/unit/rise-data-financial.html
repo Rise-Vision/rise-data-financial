@@ -233,7 +233,7 @@
     suite( "_getCacheKey()", () => {
 
       test( "should return correct key value when configured with defaults", () => {
-        const expected = `risedatafinancial_${element.type}_${element.displayId}_${element.symbols}_${element.duration}_lastPrice,netChange`;
+        const expected = `cache_risedatafinancial_${element.type}_${element.displayId}_${element.symbols}_${element.duration}_lastPrice,netChange`;
         assert.equal( element._getCacheKey(), expected );
       } );
 
@@ -243,7 +243,7 @@
         element.duration = "week";
         element.instrumentFields = ["name", "percentChange"];
 
-        const expected = `risedatafinancial_${element.type}_${element.displayId}_${element.symbols}_${element.duration}_name,percentChange`;
+        const expected = `cache_risedatafinancial_${element.type}_${element.displayId}_${element.symbols}_${element.duration}_name,percentChange`;
         assert.equal( element._getCacheKey(), expected );
       } );
 

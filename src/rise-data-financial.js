@@ -355,7 +355,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
   _getCacheKey() {
     const fields = this.instrumentFields.length > 0 ? this.instrumentFields.join( "," ) : "";
 
-    return `${this._getKey()}_${fields}`;
+    return `cache_${this._getKey()}_${fields}`;
   }
 
   _getCallbackValue( key ) {
