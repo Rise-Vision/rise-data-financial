@@ -514,7 +514,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
   _configureCache() {
     if ( this._isValidType( this.type )) {
       const initObj = {
-        name: this.tagName.toLowerCase(),
+        name: `${this.tagName.toLowerCase()}_${version}`,
         expiry: -1
       };
 
