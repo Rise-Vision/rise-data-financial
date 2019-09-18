@@ -123,7 +123,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
       refresh: 1000 * 60,
       retry: 1000 * 60,
       cooldown: 1000 * 60 * 10
-    }
+    };
   }
 
   constructor() {
@@ -138,6 +138,8 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     this._url = "";
     this._cacheKey = "";
     this._cachedEvent = null;
+    this._isPresentationVisible = true;
+    this._errorTimer = null;
   }
 
   connectedCallback() {
@@ -157,10 +159,19 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     super.log( type, event, details, additionalFields );
   }
 
+  ready() {
+    super.ready();
+
+    this.addEventListener( "rise-presentation-play", () => this._start());
+    this.addEventListener( "rise-presentation-stop", () => this._stop());
+  }
+
   _reset() {
     if ( !this._initialStart ) {
       this._userConfigChange = true;
       this._refreshDebounceJob && this._refreshDebounceJob.cancel();
+
+      this._clearErrorTimer();
 
       this._log( "info", "reset", {
         symbols: this.symbols,
@@ -174,6 +185,23 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
         },
         this.instrumentFields
       );
+    }
+  }
+
+  _start() {
+    this._isPresentationVisible = true;
+    this._reset();
+  }
+
+  _stop() {
+    this._isPresentationVisible = false;
+    this._clearErrorTimer();
+  }
+
+  _clearErrorTimer() {
+    if ( this._errorTimer ) {
+      timeOut.cancel( this._errorTimer );
+      this._errorTimer = null;
     }
   }
 
@@ -237,7 +265,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
       // and therefore observer won't trigger this handler
       this.financialErrorMessage = null;
 
-      timeOut.run(() => {
+      this._errorTimer = timeOut.run(() => {
         this._getData( this.symbols,
           {
             type: this.type,
@@ -446,6 +474,10 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
   }
 
   _getData( symbols, props, fields ) {
+    if ( !this._isPresentationVisible ) {
+      return;
+    }
+
     if ( !this._isValidType( props.type ) || !this._isValidDuration( props.duration, props.type )) {
       this._log( "error", "Invalid attributes", { props }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
 
@@ -546,7 +578,6 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
       );
     }
   }
-
 }
 
 customElements.define( "rise-data-financial", RiseDataFinancial );

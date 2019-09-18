@@ -437,6 +437,18 @@
 
       });
 
+      test( "should not call data related functions if presentation is not visible", () => {
+        sinon.stub(element, "_processValidCacheResponse");
+        sinon.stub(element, "_processInvalidCacheResponse");
+
+        element._isPresentationVisible = false;
+        element._getData( element.symbols, props, fields );
+
+        assert.isFalse(element._sendFinancialEvent.called);
+        assert.isFalse(element._getSerializedUrl.called);
+        assert.isFalse(element._processValidCacheResponse.called);
+        assert.isFalse(element._processInvalidCacheResponse.called);
+      });
     } );
 
     suite( "_handleData", () => {
