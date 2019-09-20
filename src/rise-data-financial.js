@@ -517,8 +517,8 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     this._cacheKey = this._getCacheKey();
 
     return this._tryGetCache( this._cacheKey )
-      .then( resp => this._processValidCacheResponse( resp ))
-      .catch(( cachedResp ) => this._processInvalidCacheResponse( cachedResp ));
+      .then( resp => this._processValidCacheResponse( resp.clone() ))
+      .catch(( cachedResp ) => this._processInvalidCacheResponse( cachedResp.clone() ));
   }
 
   _refresh( interval ) {
