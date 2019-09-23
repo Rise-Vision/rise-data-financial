@@ -433,7 +433,9 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
   }
 
   _processValidCacheResponse( resp ) {
-    if ( resp && resp.text ) {
+    if ( resp && resp.clone ) {
+      resp = resp.clone();
+
       resp.text().then( event => {
         try {
           const parsed = JSON.parse( event, this._dateReviver );
@@ -453,7 +455,9 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
   }
 
   _processInvalidCacheResponse( resp ) {
-    if ( resp && resp.text ) {
+    if ( resp && resp.clone ) {
+      resp = resp.clone();
+
       resp.text().then( event => {
         try {
           const parsed = JSON.parse( event, this._dateReviver );
@@ -465,7 +469,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
       })
         .catch( err => this._handleParseError( "error parsing response from expired/invalid cache", err, resp ));
     } else {
-      if ( resp && !resp.text ) {
+      if ( resp && !resp.clone ) {
         this._log( "warning", "empty expired cache response object", { key: this._cacheKey });
       }
 
