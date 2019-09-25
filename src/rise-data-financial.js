@@ -326,16 +326,17 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
 
       if ( !cached ) {
         const options = {
-          headers: {
-            "Date": new Date(),
-            "content-type": "application/json"
-          }
-        };
+            headers: {
+              "Date": new Date(),
+              "content-type": "application/json"
+            }
+          },
+          response = new Response( JSON.stringify( event ), options );
 
         // Just log these entries once per day, as they may consume lots of log space.
         this._log( "info", RiseDataFinancial.EVENT_DATA_CACHE, { key: this._cacheKey, event }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
 
-        super.putCache && super.putCache( new Response( JSON.stringify( event ), options ), this._cacheKey );
+        super.putCache && super.putCache( response.clone(), this._cacheKey );
       }
     }
 
@@ -429,7 +430,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
   }
 
   _handleParseError( event, err, resp ) {
-    this._log( "error", event, { err, resp }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
+    this._log( "warning", event, { err, resp }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
   }
 
   _processValidCacheResponse( resp ) {
@@ -443,15 +444,16 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
           this._handleData( Object.assign( parsed, { cached: true }));
         } catch ( err ) {
           this._handleParseError( "error parsing text", err );
+          this._processInvalidCacheResponse();
         }
       })
-        .catch( err => this._handleParseError( "error parsing response from valid cache", err, resp ));
+        .catch( err => {
+          this._handleParseError( "error parsing response from valid cache", err, resp );
+          this._processInvalidCacheResponse();
+        });
     } else {
-      this._log( "warning", "empty valid cache response object", { key: this._cacheKey });
-      // ensure a request for the data occurs
       this._processInvalidCacheResponse();
     }
-
   }
 
   _processInvalidCacheResponse( resp ) {
@@ -465,14 +467,14 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
           this._requestData( Object.assign( parsed, { cached: true }));
         } catch ( err ) {
           this._handleParseError( "error parsing text", err );
+          this._requestData( null );
         }
       })
-        .catch( err => this._handleParseError( "error parsing response from expired/invalid cache", err, resp ));
+        .catch( err => {
+          this._handleParseError( "error parsing response from expired/invalid cache", err, resp );
+          this._requestData( null );
+        });
     } else {
-      if ( resp && !resp.clone ) {
-        this._log( "warning", "empty expired cache response object", { key: this._cacheKey });
-      }
-
       this._requestData( null );
     }
   }
