@@ -1,4 +1,4 @@
-# Financial Data Web Component [![CircleCI](https://circleci.com/gh/Rise-Vision/rise-data-financial/tree/master.svg?style=svg)](https://circleci.com/gh/Rise-Vision/rise-data-financial/tree/master)
+# Financial Data Web Component [![CircleCI](https://circleci.com/gh/Rise-Vision/rise-data-financial/tree/master.svg?style=svg)](https://circleci.com/gh/Rise-Vision/rise-data-financial/tree/master) [![Coverage Status](https://coveralls.io/repos/github/Rise-Vision/rise-data-financial/badge.svg?branch=master)](https://coveralls.io/github/Rise-Vision/rise-data-financial?branch=master)
 
 ## Introduction
 
@@ -161,7 +161,7 @@ The component supports offline play by relying on the browsers Cache API availab
 
 Every time a successful request is made to the Financial server via the `<iron-jsonp-library>` component, the _event_ object that is returned from the `<iron-jsonp-library>` response trigger/handler is stored locally in the cache. In case connectivity is lost, the latest cached version will be available. Upon a Player restart, if a cached version exists it will be used until connectivity is restored.
 
-When running online and components `type` is configured for _realtime_, the duration that a cached response is valid for is 55 seconds which allows for a fresh request to the Financial server every minute to obtain realtime data. 
+When running online and components `type` is configured for _realtime_, the duration that a cached response is valid for is 55 seconds which allows for a fresh request to the Financial server every minute to obtain realtime data.
 
 When running online and components `type` is configured for _historical_, the duration that a cached response is valid for is 24 hours which means only one fresh request to Financial Server is made per day for _historical_ data. This rule is applicable to all `duration` configurations (i.e. _Week_, _Month_, _Year_, etc) except for _Day_. When configured for _Day_ duration, the same rules of _realtime_ are applied (55 second cache expiry)
 
@@ -195,6 +195,12 @@ Execute the following command in Terminal to run tests:
 
 ```
 npm run test
+```
+
+In case `polymer-cli` was installed globally, the `wct-istanbul` package will also need to be installed globally:
+
+```
+npm install -g wct-istanbul
 ```
 
 #### Local Server
