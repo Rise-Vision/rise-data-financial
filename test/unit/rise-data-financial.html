@@ -30,6 +30,8 @@
 <script src="../data/realtime.js"></script>
 
 <script>
+  const VALID_RESPONSE_CONTENT = JSON.stringify({ detail: [ realTimeData ] });
+
   suite("rise-data-financial", () => {
 
     const fields = [ "lastPrice", "netChange" ],
@@ -388,7 +390,7 @@
       } );
 
       test( "should call _processValidCacheResponse from a valid cache response", (done) => {
-        const resp = new Response(JSON.stringify({ detail: [ realTimeData ] }));
+        const resp = new Response(VALID_RESPONSE_CONTENT);
 
         sandbox.stub(cacheMixin, "getCache").resolves(resp);
         sinon.stub(element, "_processValidCacheResponse");
@@ -405,7 +407,7 @@
       });
 
       test( "should call _processInvalidCacheResponse from an expired cache response", (done) => {
-        const resp = new Response(JSON.stringify({ detail: [ realTimeData ] }));
+        const resp = new Response(VALID_RESPONSE_CONTENT);
 
         sandbox.stub(cacheMixin, "getCache").callsFake(() => Promise.reject(resp));
         sinon.stub(element, "_processInvalidCacheResponse");
@@ -517,19 +519,26 @@
         assert.isFalse( cacheMixin.putCache.called);
       } );
 
+      test( "should do nothing if no detail is provided", () => {
+        element._handleData({});
+
+        assert.isFalse( cacheMixin.putCache.called);
+      } );
+
     } );
 
     suite( "_processValidCacheResponse", () => {
 
       setup( () => {
         sinon.stub( element, "_handleData" );
+        sinon.stub( element, "_log" );
         sinon.stub( element, "_processInvalidCacheResponse" );
       } );
 
       test( "should call _handleData() with correct params from processing response", (done) => {
         clock.restore();
 
-        element._processValidCacheResponse( new Response(JSON.stringify({ detail: [ realTimeData ] })) );
+        element._processValidCacheResponse( new Response(VALID_RESPONSE_CONTENT) );
 
         setTimeout(()=>{
           assert.isTrue(element._handleData.calledWith({ detail: [ realTimeData ], cached:true }));
@@ -543,17 +552,52 @@
         element._processValidCacheResponse( {} );
         assert.isTrue( element._processInvalidCacheResponse.called );
       } );
+
+      test( "should call _processInvalidCacheResponse when response is not JSON text", done => {
+        clock.restore();
+
+        element._processValidCacheResponse( new Response("") );
+
+        setTimeout(()=>{
+          assert.isTrue( element._processInvalidCacheResponse.called );
+          assert.isTrue( element._log.calledOnce );
+
+          clock = sinon.useFakeTimers();
+          done();
+        }, 200);
+      } );
+
+      test( "should call _processInvalidCacheResponse when response promise can't be obtained", done => {
+        clock.restore();
+
+        const response = new Response( VALID_RESPONSE_CONTENT );
+        sinon.stub( response, "clone" ).returns( response );
+
+        // call text to block stream
+        response.text().then(() => {
+          element._processValidCacheResponse( response );
+
+          setTimeout(()=>{
+            assert.isTrue( element._processInvalidCacheResponse.called );
+            assert.isTrue( element._log.calledOnce );
+
+            clock = sinon.useFakeTimers();
+            done();
+          }, 200);
+        } );
+      } );
     } );
 
     suite( "_processInvalidCacheResponse", () => {
       setup( () => {
         sinon.stub( element, "_requestData" );
+        sinon.stub( element, "_log" );
       } );
 
       test( "should call _requestData() with correct params from processing response", (done) => {
         clock.restore();
 
-        element._processInvalidCacheResponse( new Response(JSON.stringify({ detail: [ realTimeData ] })) );
+        element._processInvalidCacheResponse( new Response(VALID_RESPONSE_CONTENT) );
 
         setTimeout(()=>{
           assert.isTrue(element._requestData.calledWith({ detail: [ realTimeData ], cached:true }));
@@ -571,6 +615,40 @@
       test( "should call _requestData() when no response object provided", () => {
         element._processInvalidCacheResponse();
         assert.isTrue( element._requestData.calledWith( null ) );
+      } );
+
+      test( "should call _requestData(null) when response is not JSON text", done => {
+        clock.restore();
+
+        element._processInvalidCacheResponse( new Response("") );
+
+        setTimeout(()=>{
+          assert.isTrue( element._requestData.calledWith( null ));
+          assert.isTrue( element._log.calledOnce );
+
+          clock = sinon.useFakeTimers();
+          done();
+        }, 200);
+      } );
+
+      test( "should call _requestData(null) when response promise can't be obtained", done => {
+        clock.restore();
+
+        const response = new Response( VALID_RESPONSE_CONTENT );
+        sinon.stub( response, "clone" ).returns( response );
+
+        // call text to block stream
+        response.text().then(() => {
+          element._processInvalidCacheResponse( response );
+
+          setTimeout(()=>{
+            assert.isTrue( element._requestData.calledWith( null ));
+            assert.isTrue( element._log.calledOnce );
+
+            clock = sinon.useFakeTimers();
+            done();
+          }, 200);
+        } );
       } );
     } );
 
