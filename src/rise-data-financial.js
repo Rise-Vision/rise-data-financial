@@ -79,20 +79,8 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
   }
 
   // Event name constants
-  static get EVENT_DATA_UPDATE() {
-    return "data-update";
-  }
   static get EVENT_DATA_CACHE() {
     return "data-cache";
-  }
-  static get EVENT_DATA_ERROR() {
-    return "data-error";
-  }
-  static get EVENT_REQUEST_ERROR() {
-    return "request-error";
-  }
-  static get EVENT_CLIENT_OFFLINE() {
-    return "client-offline"
   }
 
   static get ERROR_EVENTS() {
