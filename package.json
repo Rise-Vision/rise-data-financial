@@ -3,7 +3,7 @@
   "version": "2.1.9",
   "description": "Web component for retrieving financial data on a Rise Vision Template page",
   "scripts": {
-    "preinstall": "npx npm-force-resolutions",
+    "preinstall": "npx npm-force-resolutions || true",
     "build": "./create_config.sh prod && polymer build && ./node_modules/rise-common-component/scripts/extract-source.sh rise-data-financial",
     "pretest": "eslint . && ./create_config.sh test",
     "test": "polymer test --root ./ --config-file ./node_modules/rise-common-component/wct.conf.js",
