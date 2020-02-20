@@ -4,9 +4,10 @@
   "description": "Web component for retrieving financial data on a Rise Vision Template page",
   "scripts": {
     "preinstall": "npx npm-force-resolutions || true",
-    "build": "./create_config.sh prod && polymer build && ./node_modules/rise-common-component/scripts/extract-source.sh rise-data-financial",
-    "pretest": "eslint . && ./create_config.sh test",
-    "test": "polymer test --root ./ --config-file ./node_modules/rise-common-component/wct.conf.js",
+    "prebuild": "eslint . && ./node_modules/rise-common-component/scripts/create_config.sh prod rise-data-financial",
+    "build": "polymer build && ./node_modules/rise-common-component/scripts/extract-source.sh rise-data-financial",
+    "pretest": "eslint . && ./node_modules/rise-common-component/scripts/create_config.sh test rise-data-financial",
+    "test": "polymer test",
     "pretty": "eslint . --fix"
   },
   "repository": {
@@ -37,8 +38,10 @@
     "eslint-config-idiomatic": "^4.0.0",
     "@polymer/test-fixture": "^4.0.2",
     "chai": "^4.2.0",
+    "coveralls": "3.0.6",
     "mocha": "^5.2.0",
     "sinon": "^7.3.2",
+    "wct-istanbul": "^0.14.3",
     "wct-mocha": "^1.0.0"
   },
   "resolutions": {
