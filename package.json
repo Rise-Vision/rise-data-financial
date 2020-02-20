@@ -7,7 +7,7 @@
     "prebuild": "eslint . && ./node_modules/rise-common-component/scripts/create_config.sh prod rise-data-financial",
     "build": "polymer build && ./node_modules/rise-common-component/scripts/extract-source.sh rise-data-financial",
     "pretest": "eslint . && ./node_modules/rise-common-component/scripts/create_config.sh test rise-data-financial",
-    "test": "eslint . && polymer test",
+    "test": "polymer test",
     "pretty": "eslint . --fix"
   },
   "repository": {
