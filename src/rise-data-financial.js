@@ -291,7 +291,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
 
     this._financialRequestRetryCount = 0;
 
-    if ( detail.hasOwnProperty( "errors" ) && detail.errors.length === 1 ) {
+    if ( Object.prototype.hasOwnProperty.call( detail, "errors" ) && detail.errors.length === 1 ) {
       this._log( "error", RiseDataFinancial.EVENT_DATA_ERROR, { error: detail.errors[ 0 ], cached });
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_ERROR, detail.errors[ 0 ]);
     } else {
@@ -301,7 +301,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
 
       this._userConfigChange = false;
 
-      if ( detail.hasOwnProperty( "table" ) && detail.table ) {
+      if ( Object.prototype.hasOwnProperty.call( detail, "table" ) && detail.table ) {
         data.data = detail.table;
       }
 
