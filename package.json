@@ -29,22 +29,13 @@
   "homepage": "https://github.com/Rise-Vision/rise-data-financial#readme",
   "dependencies": {
     "@polymer/iron-jsonp-library": "^3.0.1",
-    "@polymer/polymer": "3.1.0",
-    "@webcomponents/webcomponentsjs": "^2.4.2",
-    "rise-common-component": "git://github.com/Rise-Vision/rise-common-component.git#v1.3.1"
+    "rise-common-component": "git://github.com/Rise-Vision/rise-common-component.git#v1.3.2"
   },
   "devDependencies": {
-    "eslint": "^6.8.0",
-    "eslint-config-idiomatic": "^4.0.0",
-    "@polymer/test-fixture": "^4.0.2",
-    "chai": "^4.2.0",
-    "coveralls": "^3.0.9",
-    "mocha": "^7.1.0",
-    "sinon": "^9.0.0",
-    "wct-istanbul": "^0.14.3",
-    "wct-mocha": "^1.0.1"
+    "eslint-config-idiomatic": "^4.0.0"
   },
   "resolutions": {
-    "braces": "^2.3.1"
+    "braces": "^2.3.1",
+    "micromatch": "~4.0.2"
   }
 }
