@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   preconditions:
     docker: &BUILDIMAGE
-      - image: circleci/node:10.16-browsers
+      - image: node:10.18.1-stretch
     steps:
       - checkout
       - run: |
