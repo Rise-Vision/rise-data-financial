@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   preconditions:
     docker: &BUILDIMAGE
-      - image: jenkinsrise/cci-v2-components:0.0.5
+      - image: circleci/node:latest-browsers
     steps:
       - checkout
       - run: |
@@ -37,6 +37,7 @@ jobs:
       - run: sudo apt-get update -qq
       - run: sudo apt-get install -y google-chrome-stable
       # Run tests
+      - run: sudo npm install -g polymer-cli@1.9.7 --unsafe-perm
       - run: sudo npm install -g wct-istanbul
       - run: npm test
       - run: cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js
@@ -49,6 +50,7 @@ jobs:
           at: .
       - restore_cache:
           key: node-cache-{{ checksum "package.json" }}
+      - run: sudo npm install -g polymer-cli@1.9.7 --unsafe-perm
       - run: |
           VERSION=$(grep version package.json | grep -o '[0-9.]*')
           sed -i "
@@ -98,6 +100,7 @@ jobs:
           at: .
       - restore_cache:
           key: node-cache-{{ checksum "package.json" }}
+      - run: sudo npm install -g polymer-cli@1.9.7 --unsafe-perm
       - run: echo build e2e page << parameters.stage >>
       - run: |
           VERSION=$(cat version-string/version)
