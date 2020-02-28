@@ -4,7 +4,7 @@
   "license": "GPL-3.0",
   "dependencies": {
     "@polymer/iron-jsonp-library": "^3.0.1",
-    "@polymer/polymer": "^3.0.5",
-    "@webcomponents/webcomponentsjs": "^2.1.3"
+    "@polymer/polymer": "3.1.0",
+    "@webcomponents/webcomponentsjs": "~2.4.2"
   }
 }
