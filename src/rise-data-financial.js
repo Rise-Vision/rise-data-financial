@@ -87,15 +87,18 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     return {
       "N/P": {
         message: "Rise is not permissioned to show the instrument",
-        level: "warning"
+        level: RiseDataFinancial.LOG_TYPE_WARNING,
+        errorCode: null
       },
       "N/A": {
         message: "Instrument is unavailable, invalid or unknown",
-        level: "error"
+        level: RiseDataFinancial.LOG_TYPE_ERROR,
+        errorCode: "E000000047"
       },
       "S/P": {
         message: "Display is not permissioned to show the instrument",
-        level: "error"
+        level: RiseDataFinancial.LOG_TYPE_ERROR,
+        errorCode: "E000000048"
       }
     };
   }
@@ -161,7 +164,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
 
       this._clearErrorTimer();
 
-      this._log( "info", "reset", {
+      this._log( RiseDataFinancial.LOG_TYPE_INFO, "reset", {
         symbols: this.symbols,
         instrumentFields: this.instrumentFields
       }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
@@ -265,9 +268,9 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     } else {
       this._financialRequestRetryCount = 0;
       if ( isOffline ) {
-        this._log( "error", RiseDataFinancial.EVENT_CLIENT_OFFLINE, { message: this.financialErrorMessage });
+        this._log( RiseDataFinancial.LOG_TYPE_ERROR, RiseDataFinancial.EVENT_CLIENT_OFFLINE, { errorCode: "E000000050" }, { message: this.financialErrorMessage });
       } else {
-        this._log( "error", RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
+        this._log( RiseDataFinancial.LOG_TYPE_ERROR, RiseDataFinancial.EVENT_REQUEST_ERROR, { errorCode: "E000000037" }, { message: this.financialErrorMessage });
         this._sendFinancialEvent( RiseDataFinancial.EVENT_REQUEST_ERROR, { message: this.financialErrorMessage });
       }
 
@@ -292,7 +295,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     this._financialRequestRetryCount = 0;
 
     if ( detail.hasOwnProperty( "errors" ) && detail.errors.length === 1 ) {
-      this._log( "error", RiseDataFinancial.EVENT_DATA_ERROR, { error: detail.errors[ 0 ], cached });
+      this._log( RiseDataFinancial.LOG_TYPE_ERROR, RiseDataFinancial.EVENT_DATA_ERROR, { errorCode: "E000000051" }, { error: detail.errors[ 0 ], cached });
       this._sendFinancialEvent( RiseDataFinancial.EVENT_DATA_ERROR, detail.errors[ 0 ]);
     } else {
       let data = {
@@ -306,7 +309,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
       }
 
       // Just log these entries once per day, as they may consume lots of log space.
-      this._log( "info", RiseDataFinancial.EVENT_DATA_UPDATE, Object.assign({}, data, { cached }), RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
+      this._log( RiseDataFinancial.LOG_TYPE_INFO, RiseDataFinancial.EVENT_DATA_UPDATE, Object.assign({}, data, { cached }), RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
 
       this._checkFinancialErrors( data, cached );
 
@@ -322,7 +325,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
           response = new Response( JSON.stringify( event ), options );
 
         // Just log these entries once per day, as they may consume lots of log space.
-        this._log( "info", RiseDataFinancial.EVENT_DATA_CACHE, { key: this._cacheKey, event }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
+        this._log( RiseDataFinancial.LOG_TYPE_INFO, RiseDataFinancial.EVENT_DATA_CACHE, { key: this._cacheKey, event }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
 
         super.putCache && super.putCache( response.clone(), this._cacheKey );
       }
@@ -339,9 +342,9 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
         )) {
           const error = RiseDataFinancial.ERROR_EVENTS[ status ];
 
-          this._log( error.level, `${ error.message }`, {
-            symbols: this.symbols, cached
-          }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
+          this._log( error.level, `${ error.message }`, { errorCode: error.errorCode },
+            Object.assign({}, { symbols: this.symbols, cached
+            }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY ));
         }
       });
   }
@@ -418,7 +421,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
   }
 
   _handleParseError( event, err, resp ) {
-    this._log( "warning", event, { err, resp }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
+    this._log( RiseDataFinancial.LOG_TYPE_WARNING, event, { err, resp }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
   }
 
   _processValidCacheResponse( resp ) {
@@ -473,7 +476,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
     }
 
     if ( !this._isValidType( props.type ) || !this._isValidDuration( props.duration, props.type )) {
-      this._log( "error", "Invalid attributes", { props }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
+      this._log( RiseDataFinancial.LOG_TYPE_ERROR, "Invalid attributes", { errorCode: "E000000049" }, Object.assign({}, props, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY ));
 
       this._sendEmptyDataEvent();
       this._refresh( RiseDataFinancial.TIMING_CONFIG.refresh );
@@ -483,7 +486,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
 
     if ( !this._isValidSymbols( symbols )) {
       if ( symbols !== "" ) {
-        this._log( "error", "Invalid attributes", { symbols }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
+        this._log( RiseDataFinancial.LOG_TYPE_ERROR, "Invalid attributes", { errorCode: "E000000049" }, Object.assign({}, symbols, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY ));
       }
 
       this._sendEmptyDataEvent();
