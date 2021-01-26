@@ -324,11 +324,18 @@
 
       test( "should send empty data if component configured with an invalid type and should log error", () => {
         const stub = sinon.stub( element, "_getParams" );
+        const stubLog = sinon.stub( element, "_log" );
 
         element._getData( element.symbols, { type: "invalid", duration: "1M" }, [] );
 
         assert.isFalse( stub.called );
-        assert.isTrue( RisePlayerConfiguration.Logger.error.calledOnce );
+        assert.isTrue( stubLog.calledOnce );
+        assert.isTrue( stubLog.calledWith(
+          "error",
+          "Invalid attributes",
+          { errorCode: "E000000049" },
+          { type: "invalid", duration: "1M", _logAtMostOncePerDay: true }
+        ));
         assert.isTrue( element._sendFinancialEvent.calledOnce );
         assert.deepEqual( element._sendFinancialEvent.getCall(0).args, [ "data-update", {
           "user-config-change": false,
@@ -340,11 +347,18 @@
 
       test( "should send empty data if component configured for historical with an invalid duration and should log error", () => {
         const stub = sinon.stub( element, "_getParams" );
+        const stubLog = sinon.stub( element, "_log" );
 
         element._getData( element.symbols, { type: "historical", duration: "invalid" }, [] );
 
         assert.isFalse( stub.called );
-        assert.isTrue( RisePlayerConfiguration.Logger.error.calledOnce );
+        assert.isTrue( stubLog.calledOnce );
+        assert.isTrue( stubLog.calledWith(
+          "error",
+          "Invalid attributes",
+          { errorCode: "E000000049" },
+          { type: "historical", duration: "invalid", _logAtMostOncePerDay: true }
+        ));
         assert.isTrue( element._sendFinancialEvent.calledOnce );
         assert.deepEqual( element._sendFinancialEvent.getCall(0).args, [ "data-update", {
           "user-config-change": false,
@@ -493,11 +507,20 @@
       } );
 
       test( "should send 'data-error' event with detail when 'errors' prop present in response detail", ( done ) => {
+        const stubLog = sinon.stub( element, "_log" );
+
         const listener = ( evt ) => {
           assert.deepEqual( evt.detail, {
             detailed_message: "400: Test error message",
             message: "Test error message"
           } );
+
+          assert.isTrue( stubLog.calledWith(
+            "error",
+            "data-error",
+            { errorCode: "E000000051" },
+            { error: { detailed_message: "400: Test error message", message: "Test error message" }, cached: false }
+          ), "error logged");
 
           element.removeEventListener( "data-error", listener );
           done();
@@ -659,6 +682,8 @@
       });
 
       test( "should send 'request-error' event with message after 5 failed retries", ( done ) => {
+        const stubLog = sinon.stub( element, "_log" );
+
         const listener = ( evt ) => {
           assert.deepEqual( evt.detail, {
             message: "Test error message"
@@ -666,6 +691,13 @@
 
           // retry count is reset
           assert.equal( element._financialRequestRetryCount, 0 );
+
+          assert.isTrue( stubLog.calledWith(
+            "error",
+            "request-error",
+            { errorCode: "E000000037" },
+            { message: "Test error message" }
+          ), "error logged");
 
           element.removeEventListener( "request-error", listener );
           element._getData.restore();
@@ -707,6 +739,24 @@
         element.financialErrorMessage = "Test error message";
 
         element._processError(false);
+      } );
+
+      test( "should log error E000000050 when offline", () => {
+        const stubLog = sinon.stub( element, "_log" );
+
+        element._financialRequestRetryCount = 5;
+        element.financialErrorMessage = "Test error message";
+
+        element._processError(true);
+
+        assert.isTrue( stubLog.calledOnce );
+        assert.isTrue( stubLog.calledWith(
+          "error",
+          "client-offline",
+          { errorCode: "E000000050" },
+          { message: "Test error message" }
+        ), "error logged");
+
       } );
 
     } );
@@ -809,7 +859,8 @@
         assert.isTrue( stub.calledWith(
           "warning",
           "Rise is not permissioned to show the instrument",
-          { symbols: element.symbols, cached: false }
+          { errorCode: null },
+          { symbols: element.symbols, cached: false, _logAtMostOncePerDay: true}
         ));
 
         stub.restore();
@@ -826,13 +877,15 @@
         assert.isTrue( stub.calledWith(
           "warning",
           "Rise is not permissioned to show the instrument",
-          { symbols: element.symbols, cached: false }
-        ));
+          { errorCode: null },
+          { symbols: element.symbols, cached: false, _logAtMostOncePerDay: true }
+          ), "N/P warning logged");
         assert.isTrue( stub.calledWith(
           "error",
           "Display is not permissioned to show the instrument",
-          { symbols: element.symbols, cached: false }
-        ));
+          { errorCode: "E000000048" },
+          { symbols: element.symbols, cached: false, _logAtMostOncePerDay: true }
+        ), "S/P error logged");
 
         stub.restore();
       } );
@@ -847,7 +900,8 @@
         assert.isTrue( stub.calledWith(
           "error",
           "Instrument is unavailable, invalid or unknown",
-          { symbols: element.symbols, cached: false }
+          { errorCode: "E000000047" },
+          { symbols: element.symbols, cached: false, _logAtMostOncePerDay: true }
         ));
 
         stub.restore();

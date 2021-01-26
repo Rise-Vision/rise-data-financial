@@ -117,7 +117,8 @@
 
       assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 0 ], componentData );
       assert.equal( RisePlayerConfiguration.Logger.error.args[ 0 ][ 1 ], "request-error");
-      assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 2 ], { message: "test error" } );
+      assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 2 ], { errorCode: 'E000000037' } );
+      assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 3 ], { message: "test error" } );
 
       element._refresh.restore();
       element._getData.restore();
@@ -134,7 +135,8 @@
 
       assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 0 ], componentData );
       assert.equal( RisePlayerConfiguration.Logger.error.args[ 0 ][ 1 ], "data-error");
-      assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 2 ], { error: "test error", cached: false } );
+      assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 2 ], { errorCode: 'E000000051' } );
+      assert.deepEqual( RisePlayerConfiguration.Logger.error.args[ 0 ][ 3 ], { error: "test error", cached: false } );
 
       element._refresh.restore();
     } );
