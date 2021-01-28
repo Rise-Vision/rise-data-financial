@@ -145,23 +145,26 @@
       element._cacheKey = element._getCacheKey();
       element._handleData( { detail: [ realTimeData ] } );
 
-      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 0 ], componentData, "log data-update arg 0");
-      assert.equal( RisePlayerConfiguration.Logger.info.args[ 0 ][ 1 ], "data-update"), "log data-update arg 1";
-      assert.equal( RisePlayerConfiguration.Logger.info.args[ 0 ][ 2 ], null, "log data-update arg 2");
-      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 3 ], {
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 0 ], componentData );
+      assert.equal( RisePlayerConfiguration.Logger.info.args[ 0 ][ 1 ], "data-update");
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 2 ], {
         data: realTimeData.table,
         cached: false,
-        "user-config-change": false,
+        "user-config-change": false
+      } );
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 3 ], {
         _logAtMostOncePerDay: true
-      }, "log data-update arg 3" );
-      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 1 ][ 0 ], componentData, "log data-cache arg 0");
-      assert.equal( RisePlayerConfiguration.Logger.info.args[ 1 ][ 1 ], "data-cache", "log data-cache arg 1");
-      assert.equal( RisePlayerConfiguration.Logger.info.args[ 1 ][ 2 ], null, "log data-cache arg 2");
-      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 1 ][ 3 ], {
+      } );
+
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 1 ][ 0 ], componentData );
+      assert.equal( RisePlayerConfiguration.Logger.info.args[ 1 ][ 1 ], "data-cache");
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 1 ][ 2 ], {
         key: "risedatafinancial_realtime_preview_AA.N|.DJI_1M_lastPrice,netChange",
-        event: { detail: [ realTimeData ] },
+        event: { detail: [ realTimeData ] }
+      } );
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 1 ][ 3 ], {
         _logAtMostOncePerDay: true
-      }, "log data-cache arg 3" );
+      } );
 
     } );
 
@@ -173,11 +176,9 @@
 
       assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 0 ], componentData );
       assert.equal( RisePlayerConfiguration.Logger.info.args[ 0 ][ 1 ], "reset");
-      assert.equal( RisePlayerConfiguration.Logger.info.args[ 0 ][ 2 ], null);
-      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 3 ], {
+      assert.deepEqual( RisePlayerConfiguration.Logger.info.args[ 0 ][ 2 ], {
         symbols: ".abc|.def",
-        instrumentFields: ["lastPrice", "netChange"],
-        _logAtMostOncePerDay: true
+        instrumentFields: ["lastPrice", "netChange"]
       } );
     } );
   });

@@ -164,10 +164,10 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
 
       this._clearErrorTimer();
 
-      this._log( RiseDataFinancial.LOG_TYPE_INFO, "reset", null, Object.assign({}, {
+      this._log( RiseDataFinancial.LOG_TYPE_INFO, "reset", {
         symbols: this.symbols,
         instrumentFields: this.instrumentFields
-      }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY ));
+      }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
 
       this._getData( this.symbols,
         {
@@ -309,7 +309,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
       }
 
       // Just log these entries once per day, as they may consume lots of log space.
-      this._log( RiseDataFinancial.LOG_TYPE_INFO, RiseDataFinancial.EVENT_DATA_UPDATE, null, Object.assign({}, data, { cached }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY ));
+      this._log( RiseDataFinancial.LOG_TYPE_INFO, RiseDataFinancial.EVENT_DATA_UPDATE, Object.assign({}, data, { cached }), RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
 
       this._checkFinancialErrors( data, cached );
 
@@ -325,7 +325,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
           response = new Response( JSON.stringify( event ), options );
 
         // Just log these entries once per day, as they may consume lots of log space.
-        this._log( RiseDataFinancial.LOG_TYPE_INFO, RiseDataFinancial.EVENT_DATA_CACHE, null, Object.assign({}, { key: this._cacheKey, event }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY ));
+        this._log( RiseDataFinancial.LOG_TYPE_INFO, RiseDataFinancial.EVENT_DATA_CACHE, { key: this._cacheKey, event }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
 
         super.putCache && super.putCache( response.clone(), this._cacheKey );
       }
@@ -421,7 +421,7 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
   }
 
   _handleParseError( event, err, resp ) {
-    this._log( RiseDataFinancial.LOG_TYPE_WARNING, event, null, Object.assign({}, { err, resp }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY ));
+    this._log( RiseDataFinancial.LOG_TYPE_WARNING, event, { err, resp }, RiseDataFinancial.LOG_AT_MOST_ONCE_PER_DAY );
   }
 
   _processValidCacheResponse( resp ) {
