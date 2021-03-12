@@ -559,6 +559,8 @@ class RiseDataFinancial extends CacheMixin( RiseElement ) {
   }
 
   _handleStart() {
+    super._handleStart();
+
     if ( this._initialStart ) {
       this._initialStart = false;
 
